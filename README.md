@@ -8,6 +8,8 @@
 - Hold a Ball
 - Stay inside perimeter
 - Defend the goal
+- Attack the ball
+- Switch robot strategy
 - Communicate between robots
 - See the ball
 - Localise robot
@@ -15,5 +17,24 @@
 - Hide a ball
 
 ## Will do:
+- Move Forwards
+- Move Sideways
+- Turn
+- Push a Ball
+- Stay inside perimeter
+- Defend the goal
+- Attack the ball
+- See the ball
+- Localise robot
+
+
 ## Should do:
+- Hold a Ball
+- Kick a Ball
+- Switch robot strategy
+
+
 ## Could do:
+- Communicate between robots
+- See other robots
+- Hide a ball
