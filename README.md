@@ -40,8 +40,8 @@
 
 
 # Components
-Pixy2 CMUcam5
-Powerful Brushless Motor v4.2 Special Edition
-Arduino UNO
-Raspberry Pi Pico
+- Pixy2 CMUcam5
+- Powerful Brushless Motor v4.2 Special Edition
+- Arduino UNO
+- Raspberry Pi Pico
 
