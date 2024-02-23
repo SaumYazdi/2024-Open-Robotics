@@ -1,3 +1,10 @@
+# Components
+- Pixy2 CMUcam5
+- Powerful Brushless Motor v4.2 Special Edition
+- Arduino UNO
+- Raspberry Pi Pico
+
+
 # 2024 Season Goals
 ## What can a robot do?
 - Move Forwards
@@ -36,12 +43,4 @@
 - Communicate between robots
 - See other robots
 - Hide a ball
-
-
-
-# Components
-- Pixy2 CMUcam5
-- Powerful Brushless Motor v4.2 Special Edition
-- Arduino UNO
-- Raspberry Pi Pico
 
