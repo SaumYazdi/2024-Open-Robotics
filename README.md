@@ -44,3 +44,20 @@
 - See other robots
 - Hide a ball
 
+<<<<<<< HEAD
+=======
+
+
+# Components
+- Pixy2 CMUcam5
+- Powerful Brushless Motor v4.2 Special Edition
+- Arduino UNO
+- Raspberry Pi Pico
+
+
+##**SUBSYSTEMS**
+1. SubDrivebase
+
+
+
+>>>>>>> d3079f102b8c3533e8c1b121d04bdf470127a714
