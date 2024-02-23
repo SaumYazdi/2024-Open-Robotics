@@ -3,6 +3,8 @@
 #include "BlinkModule.h"
 
 BlinkModule::BlinkModule() {
+  LED_PIN = LED_BUILTIN;
+  
   pinMode(LED_PIN, OUTPUT);
 }
 
