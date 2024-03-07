@@ -1,15 +1,15 @@
 #include "Arduino.h"
-// #include "pico.h"
 #include "VisionModule.h"
 
 VisionModule::VisionModule() {
   Serial.begin(115200);
-  Serial.print("Starting...\n");
+  Serial.println("Robin CHew");
   
   pixy.init();
 }
 
 void VisionModule::update() { 
+
   int i; 
   pixy.ccc.getBlocks();
 
@@ -23,6 +23,7 @@ void VisionModule::update() {
       Serial.print(i);
       Serial.print(": ");
       pixy.ccc.blocks[i].print();
+      Serial.print(1885.0/pixy.ccc.blocks[i].m_width);
     }
   }
 }

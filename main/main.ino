@@ -1,15 +1,13 @@
-// #include "VisionModule.h"
-#include "src/BlinkModule.h"
+#include "VisionModule.h"
 
-// VisionModule vision;
-BlinkModule whiteLED;
+VisionModule* vision;
 
 void setup() {
-
+  vision = new VisionModule();
 }
 
 void loop() {
-  whiteLED.update();
+  vision->update();
 }
 
 
