@@ -2,13 +2,12 @@
 #include "VisionModule.h"
 
 VisionModule::VisionModule() {
-  Serial.begin(115200);
-  Serial.println("Robin CHew");
-  
   pixy.init();
 }
 
 void VisionModule::update() { 
+
+  Serial.println("Update start");
 
   int i; 
   pixy.ccc.getBlocks();
@@ -26,4 +25,6 @@ void VisionModule::update() {
       Serial.print(1885.0/pixy.ccc.blocks[i].m_width);
     }
   }
+  
+  Serial.println("Update end");
 }

@@ -1,13 +1,15 @@
-#include "VisionModule.h"
+#include "Bot.h"
 
-VisionModule* vision;
+Bot* bot;
 
 void setup() {
-  vision = new VisionModule();
+  bot = new Bot();
 }
 
 void loop() {
-  vision->update();
+  Serial.println("Loop start");
+  bot->update();
+  Serial.println("Loop end");
 }
 
 
