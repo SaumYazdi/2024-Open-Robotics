@@ -4,10 +4,16 @@
 - Arduino UNO
 - Raspberry Pi Pico
 
-
 ## **SUBSYSTEMS**
 1. SubDrivebase
 
+
+# Todo
+- Camera stream processing
+- Orange ball detection
+- Wide lens?
+
+- If PC server dies then robot keeps driving without team comms
 
 # 2024 Season Goals
 ## What can a robot do?
