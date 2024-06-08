@@ -3,6 +3,7 @@
 
 from time import sleep
 from modules.server_module import Server
+from modules.settings import get_setting
 
-server = Server("192.168.1.34", 8089)
+server = Server(get_setting("ipv4"), get_setting("port"))
 server.start()

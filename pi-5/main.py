@@ -2,12 +2,13 @@
 
 from modules.client_module import Client
 from modules.fan_module import Fan
+from modules.settings import get_setting
 
 if __name__ == "__main__":
     fan = Fan()
     fan.on()
 
-    client = Client("192.168.1.34", 8089)
+    client = Client(get_setting("ipv4"), get_setting("port"))
 
     while True:
         message = str(input("> "))
