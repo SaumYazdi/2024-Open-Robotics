@@ -11,9 +11,9 @@ class Server:
         while True:
             connection, address = self._socket.accept()
             buffer = connection.recv(64)
+
             if len(buffer) > 0:
-                print(buffer)
-                break
+                print(buffer.decode())
 
     def start(self):
         self._thread = Thread(target=self._run)

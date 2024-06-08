@@ -6,4 +6,4 @@ class Client:
         self._socket.connect((address, port))
     
     def send(self, message: str):
-        self._socket.send(message)
+        self._socket.send(message.encode())
