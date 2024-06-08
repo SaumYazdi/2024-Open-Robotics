@@ -20,7 +20,7 @@ class Server:
             print(address, ">>", data.decode())
             connection.send(data)
         
-        print(f"{address} disconnected..")
+        print(f"{address} disconnected.")
 
     def _run(self):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
