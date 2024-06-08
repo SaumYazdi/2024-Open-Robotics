@@ -13,3 +13,9 @@
 - Type the password you set for the Pi OS.
 
 - You now have access to the Debian/Ubuntu shell on the Pi.
+
+# Git Push on the Pi
+
+- Get personal access token: settings > developer settings > personal access tokens > create new token
+
+- To set the password as the personal acces token: `git config --global user.password <token>`
