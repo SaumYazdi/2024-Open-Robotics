@@ -1,7 +1,4 @@
-
-"""
-Sends user input to the server.
-"""
+# Allow user input in client to send to server
 
 from modules.client_module import Client
 
@@ -15,3 +12,4 @@ while True:
 
     resp = client.send(message)
     print(f'Received "{resp}"')
+
