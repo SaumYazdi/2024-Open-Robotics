@@ -10,6 +10,6 @@ while True:
     if not message:
         break
 
-    resp = client.send(message)
+    resp = client.send(message.encode())
     print(f'Received "{resp}"')
 
