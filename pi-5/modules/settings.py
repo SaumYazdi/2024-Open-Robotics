@@ -1,7 +1,7 @@
 from json import load
 from path import Path
 
-SETTINGS_PATH = Path(__file__).parent.parent + "\\settings.json"
+SETTINGS_PATH = Path(__file__).parent.parent + "/settings.json"
 
 def get_setting(name: str) -> str | int | None:
     with open(SETTINGS_PATH, "r") as f:
