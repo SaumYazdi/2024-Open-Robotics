@@ -16,7 +16,7 @@ $ pinctrl [-p] [-v] [-e]
 """
 
 
-from os import system as os_system
+from os import system
 
 ON_COMMAND = "pinctrl FAN_PWM op dl"
 OFF_COMMAND = "pinctrl FAN_PWM op dh"
@@ -24,8 +24,8 @@ GET_COMMAND = "pinctrl get FAN_PWM"
 
 class Fan:
     def on(self):
-        os_system(ON_COMMAND)
+        system(ON_COMMAND)
     def off(self):
-        os_system(OFF_COMMAND)
+        system(OFF_COMMAND)
     def get(self) -> int:
-        return os_system(GET_COMMAND)
+        return system(GET_COMMAND)
