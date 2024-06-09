@@ -24,6 +24,8 @@ class Server:
         print(f"{address} disconnected.")
 
     def _run(self):
+        print(f"Starting on {self._address}")
+
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.bind((self._address, self._port))
         self._socket.listen(5)
