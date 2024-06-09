@@ -19,7 +19,7 @@ if __name__ == "__main__":
         if not message:
             break
             
-        if message == "ss":
+        if message == "ss": # Send screenshot to server (byte-wise)
             print("Sending screenshot.")
             im = camera.get_ss_array()
             

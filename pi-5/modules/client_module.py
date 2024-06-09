@@ -10,9 +10,11 @@ class Client:
     def send(self, message: str) -> str | None:
         if type(message) == str:
             self._socket.send(message.encode())
+            
         elif type(message) == ndarray:
-            print(message)
-            return
+            message_bytes = message.tobytes()
+            self._socket.send(message_bytes)
+        
         else:
             return
         
