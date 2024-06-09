@@ -23,7 +23,7 @@ if __name__ == "__main__":
             print("Sending screenshot.")
             im = camera.get_ss_array()
             
-            client.send(im)
+            client.send_array(im)
 
         else:
             resp = client.send(message)

@@ -3,7 +3,7 @@
 from picamera2 import Picamera2
 from libcamera import Transform, ColorSpace
 
-from settings import get_setting
+from modules.settings import get_setting
 
 import cv2
 from numpy import ndarray
