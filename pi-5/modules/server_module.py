@@ -1,5 +1,13 @@
 import socket
 from threading import Thread
+from modules.settings import get_setting
+from os.path import join, dirname
+import numpy as np
+import cv2
+import base64
+
+START_ARRAY = b'\xff' # 255
+END_ARRAY = b'\xfe' # 254
 
 class Server:
     def __init__(self, address: str, port: int):
@@ -7,6 +15,22 @@ class Server:
         self._port = port
         
         self.connections = {}
+
+        self.arr = None
+
+    def image_from_bytes(self, img_str: bytes):
+        with open(join(dirname(__file__), "test.txt"), "wb") as f:
+            f.write(img_str)
+    
+    def show(self):
+        with open(join(dirname(__file__), "test.txt"), "rb") as f:
+            data = f.read()
+
+            orig = base64.b64decode(data)
+            np_arr = np.frombuffer(orig, dtype=np.uint8)
+            img = cv2.imdecode(np_arr, flags=1)
+            cv2.imwrite("show.jpg", img)
+
 
     def on_new_connection(self, connection, address):
         print(f"Connected with {address}")
@@ -17,9 +41,34 @@ class Server:
             if not data:
                 break
 
-            print(data)
-            # print(address, ">>", data.decode())
-            connection.send(data)
+            if data == "show".encode():
+                self.show()
+                break
+
+            if self.arr is not None:
+                self.arr += data
+            
+            if data == START_ARRAY:
+                print("Receiving array..")
+
+                self.arr = b''
+
+            elif data[-1:] == END_ARRAY: # If last byte is '\xfe'
+                if self.arr:
+                    print("Finished array.")
+
+                    recevied_arr = self.arr[:-1] # Strip last 'end array' byte.
+                    self.image_from_bytes(recevied_arr)
+
+                    self.arr = None
+
+                else:
+                    raise Exception("Did not receive starting byte for array.")
+                
+            else:
+                if self.arr == None:
+                    print(address, ">>", data.decode())
+                    connection.send(data)
         
         print(f"{address} disconnected.")
 
@@ -41,8 +90,3 @@ class Server:
     def start(self):
         self._thread = Thread(target=self._run)
         self._thread.start()
-        
-if __name__ == "__main__":
-    
-    server = Server("192.168.1.34", 8089)
-    server.start()
