@@ -1,10 +1,11 @@
 import socket
 from threading import Thread
-from modules.settings import get_setting
-from os.path import join, dirname
 import numpy as np
+
 import cv2
 import base64
+
+from modules.settings import get_setting, get_path
 
 START_ARRAY = b'\xff' # 255
 END_ARRAY = b'\xfe' # 254
@@ -19,11 +20,11 @@ class Server:
         self.arr = None
 
     def image_from_bytes(self, img_str: bytes):
-        with open(join(dirname(__file__), "test.txt"), "wb") as f:
+        with open(get_path("test.txt"), "wb") as f:
             f.write(img_str)
     
     def show(self):
-        with open(join(dirname(__file__), "test.txt"), "rb") as f:
+        with open(get_path("test.txt"), "rb") as f:
             data = f.read()
 
             orig = base64.b64decode(data)

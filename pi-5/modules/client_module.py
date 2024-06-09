@@ -1,6 +1,7 @@
 import socket
 
 from numpy import ndarray
+from cv2 import imencode
 
 START_ARRAY = b'\xff' # 255
 END_ARRAY = b'\xfe' # 254
@@ -11,7 +12,8 @@ class Client:
         self._socket.connect((address, port))
     
     def send_array(self, arr: ndarray):
-        arr_bytes = arr.tobytes()
+        success, encoded_image = imencode(".jpg", image)
+        arr_bytes = encoded_image.tobytes()
         
         self._socket.send(START_ARRAY)
         self._socket.send(arr_bytes)
