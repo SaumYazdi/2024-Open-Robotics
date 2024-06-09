@@ -7,8 +7,8 @@ import base64
 
 from modules.settings import get_setting, get_path
 
-START_ARRAY = b'\xff' # 255
-END_ARRAY = b'\xfe' # 254
+START_ARRAY = b'\xff\xff\xff'
+END_ARRAY = b'\xfe\xfe\xfe'
 
 class Server:
     def __init__(self, address: str, port: int):
@@ -54,11 +54,11 @@ class Server:
 
                 self.arr = b''
 
-            elif data[-1:] == END_ARRAY: # If last byte is '\xfe'
+            elif data[-3:] == END_ARRAY: # If last three byte
                 if self.arr:
                     print("Finished array.")
 
-                    recevied_arr = self.arr[:-1] # Strip last 'end array' byte.
+                    recevied_arr = self.arr[:-3] # Strip last 'end array' byte.
                     self.image_from_bytes(recevied_arr)
 
                     self.arr = None
