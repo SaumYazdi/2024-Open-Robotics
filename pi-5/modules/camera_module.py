@@ -4,6 +4,7 @@ from picamera2 import Picamera2
 from libcamera import Transform, ColorSpace
 
 import cv2
+from numpy import ndarray
 
 class Camera:
     def __init__(self):
@@ -15,8 +16,21 @@ class Camera:
         )
         
         self._camera.configure(config)
+    
+    def screenshot(self, filename: str):
+        self._camera.start()
+        self._camera.capture_file(filename)
+        self._camera.close()
+        
+    def get_ss_array(self) -> ndarray:
+        self._camera.start()
+        im = self._camera.capture_array()
+        self._camera.close()
+        return im
         
     def ball_detection_test(self):
+        self._camera.start()
+            
         while True:
             im = self._camera.capture_array()
             
@@ -25,7 +39,6 @@ class Camera:
 
             cv2.imshow("Orange", mask)
             cv2.waitKey(1)
-            cv2.destroyAllWindows()
 
     def face_detection_test(self):
         face_detector = cv2.CascadeClassifier("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml")
@@ -47,4 +60,6 @@ class Camera:
 
 if __name__ == "__main__":
     camera = Camera()
-    camera.face_detection_test()
+    # camera.face_detection_test()
+    camera.ball_detection_test()
+    # print(camera.get_ss_array())
