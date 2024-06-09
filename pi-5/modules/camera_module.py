@@ -16,6 +16,17 @@ class Camera:
         
         self._camera.configure(config)
         
+    def ball_detection_test(self):
+        while True:
+            im = self._camera.capture_array()
+            
+            hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+            mask = cv2.inRange(hsv,(10, 100, 20), (25, 255, 255) )
+
+            cv2.imshow("Orange", mask)
+            cv2.waitKey(1)
+            cv2.destroyAllWindows()
+
     def face_detection_test(self):
         face_detector = cv2.CascadeClassifier("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml")
         cv2.startWindowThread()
