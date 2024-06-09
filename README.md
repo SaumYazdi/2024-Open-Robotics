@@ -1,8 +1,9 @@
 # Components
-- Pixy2 CMUcam5
-- Powerful Brushless Motor v4.2 Special Edition
-- Arduino UNO
+- Pixy2 CMUcam5?
+- Powerful Brushless Motor v4.2 Special Edition x4
 - Raspberry Pi Pico
+- Raspberry Pi 5
+- PiCamera Module 2
 
 ## **SUBSYSTEMS**
 1. SubDrivebase
