@@ -17,7 +17,8 @@ class Server:
             if not data:
                 break
 
-            print(address, ">>", data.decode())
+            print(data)
+            # print(address, ">>", data.decode())
             connection.send(data)
         
         print(f"{address} disconnected.")

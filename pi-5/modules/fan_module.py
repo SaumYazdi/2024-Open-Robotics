@@ -27,5 +27,5 @@ class Fan:
         os_system(ON_COMMAND)
     def off(self):
         os_system(OFF_COMMAND)
-    def get(self):
+    def get(self) -> int:
         return os_system(GET_COMMAND)
