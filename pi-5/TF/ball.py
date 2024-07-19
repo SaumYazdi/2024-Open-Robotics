@@ -5,8 +5,8 @@ from os.path import join, dirname
 class BallDetector:
     def __init__(self, pb_path: str, pbtxt_path: str, threshold=0.28):
         self.cvNet = cv.dnn.readNetFromTensorflow(
-                join(dirname(__file__), pb_path),
-                join(dirname(__file__), pbtxt_path)
+            join(dirname(__file__), pb_path),
+            join(dirname(__file__), pbtxt_path)
         )
 
         self.threshold = threshold
@@ -16,9 +16,12 @@ class BallDetector:
         # focused_pos
         
     def detect_frame(self, img: MatLike) -> list[list]:
+        if not img:
+            return []
+            
         rows = img.shape[0]
         cols = img.shape[1]
-
+        
         self.cvNet.setInput(cv.dnn.blobFromImage(img, scalefactor=1.0/127.5, size=(300, 300), mean=(127.5, 127.5, 127.5), swapRB=True, crop=False))
         cvOut = self.cvNet.forward()
 
