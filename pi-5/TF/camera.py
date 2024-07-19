@@ -58,7 +58,14 @@ class Camera:
         
         cv.rectangle(frame, ball_bbox.topleft, ball_bbox.bottomright, (230, 40, 110), thickness=3)
         angle = self.get_angle(ball_bbox)
-        cv.addText(frame, str(angle), (20, 20), "Arial", 33, (230, 40, 110), 5)
+
+        font = cv.FONT_HERSHEY_SIMPLEX
+        org = (15, 35)
+        fontScale = 0.6
+        color = (200, 40, 200) # BGR
+        thickness = 2
+        frame = cv.putText(frame, str(angle), org, font,  
+                        fontScale, color, thickness, cv.LINE_AA) 
 
     def show(self, frame_process_function: Callable = None):
         while(True):
