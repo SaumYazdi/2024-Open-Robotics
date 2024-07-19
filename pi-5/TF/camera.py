@@ -25,7 +25,7 @@ class BBox:
     def center(self):
         return (int(self.left + (self.right - self.left) / 2), int(self.top + (self.bottom - self.top) / 2))
 
-class Camera:
+class PCCamera:
     def __init__(self):
         self.video = cv.VideoCapture(0) 
 
@@ -67,9 +67,10 @@ class Camera:
         frame = cv.putText(frame, str(angle), org, font,  
                         fontScale, color, thickness, cv.LINE_AA) 
 
-    def show(self, frame_process_function: Callable = None):
+    def show(self, frame_process_function: Callable = None, frame: MatLike = None):
         while(True):
-            ret, frame = self.video.read() 
+            if frame:
+                ret, frame = self.video.read() 
 
             if frame_process_function:
                 boxes = frame_process_function(frame)

@@ -14,6 +14,7 @@ elif machine_type == "pc":
     from settings import get_setting, get_path
 
 import cv2
+from cv2.typing import MatLike
 from numpy import ndarray
 
 class Camera:
@@ -40,6 +41,10 @@ class Camera:
         self._camera.close()
         return im
         
+    def read(self) -> MatLike:
+        arr = self.get_ss_array()
+        return MatLike(arr)
+
     def ball_detection_test(self, win_name = "Orange"):
         self._camera.start()
             
