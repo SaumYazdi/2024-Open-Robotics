@@ -13,3 +13,5 @@ if __name__ == "__main__":
 
     # img = cv.imread('assets/example.jpg')
     # detector.detect_frame(img)
+    
+    # $ env/bin/python pi-5/TF/main.py

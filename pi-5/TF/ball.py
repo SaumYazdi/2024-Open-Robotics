@@ -1,9 +1,13 @@
 import cv2 as cv
 from cv2.typing import MatLike
+from os.path import join, dirname
 
 class BallDetector:
     def __init__(self, pb_path: str, pbtxt_path: str, threshold=0.28):
-        self.cvNet = cv.dnn.readNetFromTensorflow(pb_path, pbtxt_path)
+        self.cvNet = cv.dnn.readNetFromTensorflow(
+                join(dirname(__file__), pb_path),
+                join(dirname(__file__), pbtxt_path)
+        )
 
         self.threshold = threshold
         self.previous_position = None
