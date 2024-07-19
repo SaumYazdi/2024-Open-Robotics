@@ -67,9 +67,11 @@ class PCCamera:
         frame = cv.putText(frame, str(angle), org, font,  
                         fontScale, color, thickness, cv.LINE_AA) 
 
-    def show(self, frame_process_function: Callable = None, frame: MatLike = None):
+    def show(self, frame_process_function: Callable = None, camera = None):
         while(True):
-            if frame:
+            if camera:
+                frame = camera.read()
+            else:
                 ret, frame = self.video.read() 
 
             if frame_process_function:
