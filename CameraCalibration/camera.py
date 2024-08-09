@@ -6,6 +6,7 @@ import cv2
 import imutils
 from time import perf_counter
 from typing import Callable
+from classes import *
 try:
     from picamera2 import Picamera2
     DEVICE = "pi"
@@ -21,10 +22,12 @@ BALL_DIAMETER = 6.9 # centimetres
 CALIBRATION_DISTANCE = 30
 
 class Camera:
-    # orange_lower = (1, 114, 245)
-    # orange_upper = (8, 203, 255)
-    orange_lower = (1, 235, 230)
-    orange_upper = (11, 255, 255)
+    if DEVICE == "pc":
+        orange_lower = (1, 114, 240)
+        orange_upper = (8, 203, 255)
+    elif DEVICE == "pi":
+        orange_lower = (1, 235, 230)
+        orange_upper = (11, 255, 255)
 
     def __init__(self, window_name: str, preview: bool = True):
         self.points = deque(maxlen=BUFFER_SIZE)

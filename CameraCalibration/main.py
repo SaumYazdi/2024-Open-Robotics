@@ -1,11 +1,10 @@
 from threading import Thread
-from classes import Camera
+from camera import Camera
 from server import Server
 
 def update():
-    ...
-    # if camera.pos:
-        # print(camera.pos)
+    if camera.radius:
+        server.distance = camera.radius
 
 if __name__ == "__main__":
     camera = Camera("Shibal", preview=True)

@@ -3,6 +3,28 @@
 </head>
 
 <body>
-    Test
-    <input type="text">
+    <h1>Robot Calibration</h1>
+    <button onclick="">Start Calibration</button>
+    <p id="distance">Distance: </p>
+
+    <script type="text/javascript">
+        let dist = document.getElementById("distance");
+        
+        function update() {
+            fetch("/distance", {
+                method: "POST",
+                headers: {
+                    "Content-type": "application/json; charset=UTF-8"
+                }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    dist.innerHTML = `Distance: ${data.distance}`;
+                });
+
+            setTimeout("update();", 1000);
+        }
+
+        update();
+    </script>
 </body>
