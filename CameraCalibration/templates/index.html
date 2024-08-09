@@ -4,16 +4,42 @@
 
 <body>
     <h1>Robot Calibration</h1>
-    <button onclick="">Start Calibration</button>
+    <button id="calibrate-button" onclick="calibrateNext()">Start Calibration</button>
     <p id="distance">Distance: </p>
+    <span id="calibration">
+        <h2 id="calibrate-label">Pl</h2>
+        <button onclick="calibrateNext()">Next</button>
+    </span>
 
     <button onclick="showPreview()">Show Preview</button>
     <img id="preview" src="" alt="Preview"/>
 
     <script type="text/javascript">
+        var radius = 0;
         let dist = document.getElementById("distance");
         let preview = document.getElementById("preview");
+        let calibration = document.getElementById("calibration");
+        let calibrateButton = document.getElementById("calibrate-button");
+        let calibrateLabel = document.getElementById("calibrate-label");
         
+        step = 30
+        function calibrateNext() {
+            if (calibrateButton.style == "") {
+                calibrateButton.style.display = "none";
+                calibration.style.display = "flex";
+            } else {
+                console.log(step, radius);
+
+                if (step >= 60) {
+                    calibrateButton.style = "";
+                    calibration.style = "";
+                }
+            }
+            
+            calibrateLabel.innerHTML = `Place the ball ${step}cm away from the camera.`
+            step += 10;
+        }
+
         function showPreview() {
             fetch("/preview", {
                 method: "POST",
@@ -36,7 +62,8 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    dist.innerHTML = `Distance: ${data.distance}`;
+                    dist.innerHTML = `Radius: ${data.distance}`;
+                    radius = data.distance;
                 });
 
             setTimeout("update();", 1000);
