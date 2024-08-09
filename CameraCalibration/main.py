@@ -2,16 +2,18 @@ from threading import Thread
 from classes import Camera
 from server import Server
 
-# def update():
-#     print(camera.pos)
+def update():
+    ...
+    # if camera.pos:
+        # print(camera.pos)
 
 if __name__ == "__main__":
-    camera = Camera("Shibal", preview=False)
-    # camera.set_update(update)
+    camera = Camera("Shibal", preview=True)
+    camera.set_update(update)
     server = Server(__name__)
 
     threads = [
-        Thread(target=server.run),
+        Thread(target=server.start),
         Thread(target=camera.start),
     ]
 

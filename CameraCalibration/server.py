@@ -10,3 +10,6 @@ class Server(Flask):
         @self.route
         def index():
             return render_template("index.html")
+            
+    def start(self):
+        self.run(debug=True, port=80, host="0.0.0.0")
