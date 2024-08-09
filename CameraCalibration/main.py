@@ -1,5 +1,5 @@
 from threading import Thread
-from classes import Camera
+from camera import Camera
 from server import Server
 
 def update():

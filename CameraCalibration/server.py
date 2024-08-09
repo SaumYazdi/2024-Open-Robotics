@@ -7,9 +7,9 @@ class Server(Flask):
         self._define_routes()
 
     def _define_routes(self):
-        @self.route
+        @self.route("/")
         def index():
             return render_template("index.html")
             
     def start(self):
-        self.run(debug=True, port=80, host="0.0.0.0")
+        self.run(port=8080, host="0.0.0.0")
