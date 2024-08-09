@@ -5,7 +5,8 @@
 <body>
     <h1>Robot Calibration</h1>
     <button id="calibrate-button" onclick="calibrateNext()">Start Calibration</button>
-    <p id="distance">Distance: </p>
+    <p id="radius">Radius: </p>
+    <p id="distance">Estimated Distance: </p>
     <span id="calibration">
         <h2 id="calibrate-label">Pl</h2>
         <button onclick="calibrateNext()">Next</button>
@@ -16,35 +17,29 @@
 
     <script type="text/javascript">
         var radius = 0;
-        let dist = document.getElementById("distance");
+        let radius = document.getElementById("radius");
+        let distance = document.getElementById("distance");
         let preview = document.getElementById("preview");
         let calibration = document.getElementById("calibration");
         let calibrateButton = document.getElementById("calibrate-button");
         let calibrateLabel = document.getElementById("calibrate-label");
         
-        let steps = [];
-        step = 0;
-        
+        step = 30
         function calibrateNext() {
-            if (step == 0) {
+            if (calibrateButton.style == "") {
                 calibrateButton.style.display = "none";
                 calibration.style.display = "flex";
-            } else
-                steps.push(step + ' ' + radius);
+            } else {
+                console.log(step, radius);
+
+                if (step >= 60) {
+                    calibrateButton.style = "";
+                    calibration.style = "";
+                }
+            }
             
+            calibrateLabel.innerHTML = `Place the ball ${step}cm away from the camera.`
             step += 10;
-            
-            if (step > 60) {
-                console.log(steps.join("\n"));
-                calibrateButton.style = "";
-                calibration.style = "";
-                calibrateLabel.innerHTML = "";
-                
-                step = 0;
-                steps = [];
-                return;
-            } else
-                calibrateLabel.innerHTML = `Place the ball ${step}cm away from the camera.`
         }
 
         function showPreview() {
@@ -57,8 +52,7 @@
                 .then(response => response.json())
                 .then(data => {
                     preview.src = data.preview;
-                })
-                .catch(error => {});
+                });
         }
 
         function update() {
@@ -70,10 +64,9 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    dist.innerHTML = `Radius: ${data.distance}`;
-                    radius = data.distance;
-                })
-                .catch(error => {});
+                    radius.innerHTML = `Radius: ${data.radius}`;
+                    radius = data.radius;
+                });
 
             setTimeout("update();", 1000);
         }
