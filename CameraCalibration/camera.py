@@ -66,7 +66,6 @@ class Camera:
         return mask
 
     def compute(self, frame):
-        print("update")
         mask = self.get_mask(frame)
         # find contours in the mask and initialize the current
         # (x, y) center of the ball
@@ -88,7 +87,6 @@ class Camera:
             if radius > 10:
                 cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
                 cv2.circle(frame, center, 2, BALL_TRACK_COLOUR, -1)
-                print("draw")
 
                 if self.pos is None:
                     self.pos = pos
