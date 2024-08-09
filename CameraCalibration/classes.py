@@ -43,7 +43,7 @@ class Vector:
     def int(self):
         return [int(_) for _ in self._vec]
     
-def lerp(a: float, b: float, step: float = .8) -> float:
+def lerp(a: float, b: float, step: float = .1) -> float:
     return a + (b - a) * step
 
 def dist_squared(a: Vector, b: Vector) -> float:

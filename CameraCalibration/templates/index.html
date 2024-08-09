@@ -7,9 +7,26 @@
     <button onclick="">Start Calibration</button>
     <p id="distance">Distance: </p>
 
+    <button onclick="showPreview()">Show Preview</button>
+    <img id="preview" src="" alt="Preview"/>
+
     <script type="text/javascript">
         let dist = document.getElementById("distance");
+        let preview = document.getElementById("preview");
         
+        function showPreview() {
+            fetch("/preview", {
+                method: "POST",
+                headers: {
+                    "Content-type": "application/json; charset=UTF-8"
+                }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    preview.src = data.preview;
+                });
+        }
+
         function update() {
             fetch("/distance", {
                 method: "POST",

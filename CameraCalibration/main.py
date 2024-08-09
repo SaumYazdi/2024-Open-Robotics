@@ -5,6 +5,7 @@ from server import Server
 def update():
     if camera.radius:
         server.distance = camera.radius
+    server.preview = camera.image
 
 if __name__ == "__main__":
     camera = Camera("Shibal", preview=True)

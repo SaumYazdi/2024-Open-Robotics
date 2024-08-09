@@ -15,20 +15,22 @@ except ImportError:
     DEVICE = "pc"
 
 BUFFER_SIZE = 64
-FPS_UPDATE = 24
 MAX_BALL_JUMP = 720 # If ball is detected, how close the new pos must be for it the current position to update
 BALL_TRACK_COLOUR = (0, 150, 255)
 BALL_DIAMETER = 6.9 # centimetres
 CALIBRATION_DISTANCE = 30
+if DEVICE == "pc":
+    ORANGE_LOWER = (1, 114, 245)
+    ORANGE_UPPER = (8, 203, 255)
+    LERP_STEP = 0.4
+    FPS_UPDATE = 120
+elif DEVICE == "pi":
+    ORANGE_LOWER = (1, 235, 230)
+    ORANGE_UPPER = (11, 255, 255)
+    LERP_STEP = 0.8
+    FPS_UPDATE = 24
 
 class Camera:
-    if DEVICE == "pc":
-        orange_lower = (1, 114, 240)
-        orange_upper = (8, 203, 255)
-    elif DEVICE == "pi":
-        orange_lower = (1, 235, 230)
-        orange_upper = (11, 255, 255)
-
     def __init__(self, window_name: str, preview: bool = True):
         self.points = deque(maxlen=BUFFER_SIZE)
         
@@ -46,6 +48,8 @@ class Camera:
         self.radius = None
         self.velocity = None
 
+        self.image = None
+
         self.update_events = []
             
     def get_mask(self, frame):
@@ -55,13 +59,14 @@ class Camera:
         # Construct a mask for the color orange, then perform
         # a series of dilations and erosions to remove any small
         # blobs left in the mask
-        mask = cv2.inRange(hsv, self.orange_lower, self.orange_upper)
+        mask = cv2.inRange(hsv, ORANGE_LOWER, ORANGE_UPPER)
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
         
         return mask
 
     def compute(self, frame):
+        print("update")
         mask = self.get_mask(frame)
         # find contours in the mask and initialize the current
         # (x, y) center of the ball
@@ -81,9 +86,9 @@ class Camera:
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
             
             if radius > 10:
-                if self.preview:
-                    cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-                    cv2.circle(frame, center, 2, BALL_TRACK_COLOUR, -1)
+                cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+                cv2.circle(frame, center, 2, BALL_TRACK_COLOUR, -1)
+                print("draw")
 
                 if self.pos is None:
                     self.pos = pos
@@ -92,11 +97,11 @@ class Camera:
 
                 if dist_squared(self.pos, pos) < MAX_BALL_JUMP ** 2:
                     old_pos = self.pos.copy()
-                    self.pos.x = lerp(self.pos.x, x)
-                    self.pos.y = lerp(self.pos.y, y)
+                    self.pos.x = lerp(self.pos.x, x, LERP_STEP)
+                    self.pos.y = lerp(self.pos.y, y, LERP_STEP)
                     self.velocity = Vector(self.pos.x - old_pos.x, self.pos.y - old_pos.y)
 
-                    self.radius = lerp(self.radius, radius)
+                    self.radius = lerp(self.radius, radius, LERP_STEP)
                     
         else:
             self.pos = None
@@ -109,36 +114,37 @@ class Camera:
             return self.video_stream.read()
         return self.video_stream.capture_array()
     
-    def _update(self) -> bool | None:
+    def _update(self):
         frame = self.read()
         
         if frame is None:
             return
         
-        # frame = imutils.resize(frame, width=600)
+        # Important or detection will break!
+        frame = imutils.resize(frame, width=600)
         self.compute(frame)
 
-        if self.preview:
-            for i in range(1, len(self.points)):
-                if self.points[i - 1] is None or self.points[i] is None:
-                    continue
-                
-                thickness = int(np.sqrt(BUFFER_SIZE / float(i + 1)) * 2.5)
-                cv2.line(frame, self.points[i - 1], self.points[i], BALL_TRACK_COLOUR, thickness)
+        for i in range(1, len(self.points)):
+            if self.points[i - 1] is None or self.points[i] is None:
+                continue
             
-            if self.pos and self.radius:
-                cv2.circle(frame, self.pos.int(), int(self.radius), BALL_TRACK_COLOUR, 2)
+            thickness = int(np.sqrt(BUFFER_SIZE / float(i + 1)) * 2.5)
+            cv2.line(frame, self.points[i - 1], self.points[i], BALL_TRACK_COLOUR, thickness)
+        
+        if self.pos and self.radius:
+            cv2.circle(frame, self.pos.int(), int(self.radius), BALL_TRACK_COLOUR, 2)
 
-                point2 = Vector(self.pos.x + self.velocity.x * 50, self.pos.y + self.velocity.y * 50)
-                cv2.line(frame, self.pos.int(), point2.int(), (255, 0, 50), 3)
+            point2 = Vector(self.pos.x + self.velocity.x * 50, self.pos.y + self.velocity.y * 50)
+            cv2.line(frame, self.pos.int(), point2.int(), (255, 0, 50), 3)
 
+        if self.preview == True:
             cv2.imshow(self.window_name, frame)
             key = cv2.waitKey(1) & 0xFF
             
             if key == ord("q"):
                 return
         
-        return True
+        return frame
 
     def set_update(self, event: Callable):
         self.update_events.append(event)
@@ -159,7 +165,8 @@ class Camera:
 
                     cv2.setWindowTitle(self.window_name, f"FPS: {fps}")
 
-            if not self._update():
+            self.image = self._update()
+            if self.image is None:
                 break
 
             for event in self.update_events:
