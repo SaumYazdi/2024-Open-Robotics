@@ -22,22 +22,29 @@
         let calibrateButton = document.getElementById("calibrate-button");
         let calibrateLabel = document.getElementById("calibrate-label");
         
-        step = 30
+        let steps = [];
+        step = 0;
+        
         function calibrateNext() {
-            if (calibrateButton.style == "") {
+            if (step == 0) {
                 calibrateButton.style.display = "none";
                 calibration.style.display = "flex";
-            } else {
-                console.log(step, radius);
-
-                if (step >= 60) {
-                    calibrateButton.style = "";
-                    calibration.style = "";
-                }
-            }
+            } else
+                steps.push(step + ' ' + radius);
             
-            calibrateLabel.innerHTML = `Place the ball ${step}cm away from the camera.`
             step += 10;
+            
+            if (step > 60) {
+                console.log(steps.join("\n"));
+                calibrateButton.style = "";
+                calibration.style = "";
+                calibrateLabel.innerHTML = "";
+                
+                step = 0;
+                steps = [];
+                return;
+            } else
+                calibrateLabel.innerHTML = `Place the ball ${step}cm away from the camera.`
         }
 
         function showPreview() {
@@ -50,7 +57,8 @@
                 .then(response => response.json())
                 .then(data => {
                     preview.src = data.preview;
-                });
+                })
+                .catch(error => {});
         }
 
         function update() {
@@ -64,7 +72,8 @@
                 .then(data => {
                     dist.innerHTML = `Radius: ${data.distance}`;
                     radius = data.distance;
-                });
+                })
+                .catch(error => {});
 
             setTimeout("update();", 1000);
         }
