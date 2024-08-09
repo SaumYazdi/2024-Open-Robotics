@@ -1,5 +1,4 @@
 import cv2 as cv
-from cv2.typing import MatLike
 from typing import Callable
 
 class BBox:
@@ -29,7 +28,7 @@ class PCCamera:
     def __init__(self):
         self.video = cv.VideoCapture(0) 
 
-    def draw_boxes(self, frame: MatLike, boxes: list):
+    def draw_boxes(self, frame, boxes: list):
         for bbox in boxes:
             left, top, right, bottom = bbox
             cv.rectangle(frame, (int(left), int(top)), (int(right), int(bottom)), (23, 230, 210), thickness=2)
@@ -48,7 +47,7 @@ class PCCamera:
         # y = .105(x-331.8)
         return .105 * (center_x - 331.8)
 
-    def update(self, frame: MatLike, boxes: list):
+    def update(self, frame, boxes: list):
         # self.draw_boxes(frame, boxes)
 
         ball_bbox = self.get_largest_bbox(boxes)

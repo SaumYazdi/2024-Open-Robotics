@@ -1,5 +1,4 @@
 import cv2 as cv
-from cv2.typing import MatLike
 from os.path import join, dirname
 
 class BallDetector:
@@ -15,7 +14,7 @@ class BallDetector:
         # focused_area
         # focused_pos
         
-    def detect_frame(self, img: MatLike) -> list[list]:
+    def detect_frame(self, img) -> list[list]:
         if not img:
             return []
             
