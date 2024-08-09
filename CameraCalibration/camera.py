@@ -34,9 +34,7 @@ class Camera:
         
         if DEVICE == "pi":
             self.video_stream = Picamera2()
-            config = self.video_stream.create_still_configuration(
-                main={"format": 'XRGB8888', "size": [640, 320]}
-            )
+            config = self.video_stream.create_still_configuration(main={"format": 'XRGB8888', "size": [640, 320]})
             self.video_stream.configure(config)
         elif DEVICE == "pc":
             self.video_stream = VideoStream(src=0).start()
@@ -117,7 +115,7 @@ class Camera:
         if frame is None:
             return
         
-        frame = imutils.resize(frame, width=600)
+        # frame = imutils.resize(frame, width=600)
         self.compute(frame)
 
         if self.preview:
