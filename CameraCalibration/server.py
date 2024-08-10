@@ -11,6 +11,7 @@ import cv2
 import json
 
 PNG_START = "data:image/png;base64,"
+save_path = join(dirname(__file__), "save.json")
 
 class Server(Flask):
     def __init__(self, *args, **kwargs):
@@ -30,7 +31,10 @@ class Server(Flask):
     def _define_routes(self):
         @self.route("/")
         def index():
-            return render_template("index.html")
+            with open(save_path, "r") as f:
+                data = json.load(f)["dist"]
+                f.close()
+            return render_template("index.html", a=data["a"], k=data["k"])
             
         @self.route("/radius", methods=["POST"])
         def radius():
@@ -55,8 +59,8 @@ class Server(Flask):
             
             return jsonify({"preview": image})
         
-        @self.route("/fit", methods=["POST"])
-        def fit():
+        @self.route("/fitDist", methods=["POST"])
+        def fit_dist():
             data = json.loads(request.data)
 
             self.x_data = data["radii"]
@@ -67,8 +71,11 @@ class Server(Flask):
 
             self.k, self.a = params
             
-            with open(join(dirname(__file__), "save.json"), "w") as f:
-                data = {"k": self.k, "a": self.a}
+            with open(save_path, "r") as f:
+                data = json.load(f)
+                f.close()
+            data["dist"] = {"k": self.k, "a": self.a}
+            with open(save_path, "w") as f:
                 json.dump(data, f, sort_keys=True, indent=4)
                 f.close()
 

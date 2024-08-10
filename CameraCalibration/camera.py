@@ -32,7 +32,8 @@ elif DEVICE == "pi":
     FPS_UPDATE = 24
 
 class Camera:
-    def __init__(self, window_name: str, preview: bool = True):
+    def __init__(self, window_name: str,
+            preview: bool = False, draw_detections: bool = False):
         self.points = deque(maxlen=BUFFER_SIZE)
         
         if DEVICE == "pi":
@@ -44,6 +45,7 @@ class Camera:
 
         self.window_name = window_name
         self.preview = preview
+        self.draw_detections = draw_detections
 
         self.pos = None
         self.radius = None
@@ -123,18 +125,19 @@ class Camera:
         frame = imutils.resize(frame, width=600)
         self.compute(frame)
 
-        for i in range(1, len(self.points)):
-            if self.points[i - 1] is None or self.points[i] is None:
-                continue
+        if self.draw_detections:
+            for i in range(1, len(self.points)):
+                if self.points[i - 1] is None or self.points[i] is None:
+                    continue
+                
+                thickness = int(np.sqrt(BUFFER_SIZE / float(i + 1)) * 2.5)
+                cv2.line(frame, self.points[i - 1], self.points[i], BALL_TRACK_COLOUR, thickness)
             
-            thickness = int(np.sqrt(BUFFER_SIZE / float(i + 1)) * 2.5)
-            cv2.line(frame, self.points[i - 1], self.points[i], BALL_TRACK_COLOUR, thickness)
-        
-        if self.pos and self.radius:
-            cv2.circle(frame, self.pos.int(), int(self.radius), BALL_TRACK_COLOUR, 2)
+            if self.pos and self.radius:
+                cv2.circle(frame, self.pos.int(), int(self.radius), BALL_TRACK_COLOUR, 2)
 
-            point2 = Vector(self.pos.x + self.velocity.x * 50, self.pos.y + self.velocity.y * 50)
-            cv2.line(frame, self.pos.int(), point2.int(), (255, 0, 50), 3)
+                point2 = Vector(self.pos.x + self.velocity.x * 50, self.pos.y + self.velocity.y * 50)
+                cv2.line(frame, self.pos.int(), point2.int(), (255, 0, 50), 3)
 
         if self.preview == True:
             cv2.imshow(self.window_name, frame)

@@ -6,28 +6,6 @@
 <body>
     <h1>Robot Calibration</h1>
     
-    <div id="calibrate-start" class="box">
-        <button id="calibrate-button" onclick="calibrateNext()">Start Calibration</button>
-        <p id="output-label"></p>
-        <img id="output-graph" style="width:100%; max-width:50rem"></img>
-    </div>
-    
-    <div id="measurements" class="box">
-        <p id="detected-label">Detected: </p>
-        <p id="radius-label">Radius: </p>
-        <p id="distance-label">Estimated Distance: </p>
-    </div>
-    
-    <div class="box">
-        <p id="factor-label">Factor: </p>
-        <input id="factor-slider" type="range" min=1 max=5000 value=2440 />
-    </div>
-    
-    <div id="calibration" class="box">
-        <button onclick="calibrateNext()">Next</button>
-        <p id="calibrate-label"></p>
-    </div>
-
     <div class="box">
         <button id="preview-button" onclick="showPreview()">Show Preview</button>
         <p id="update-label">Update Interval: </p>
@@ -35,5 +13,50 @@
         <img id="preview" src="" alt="Preview"/>
     </div>
 
+    <div id="measurements" class="box">
+        <p id="detected-label">Detected: </p>
+        <p id="radius-label">Radius: </p>
+        <p id="distance-label">Estimated Distance: </p>
+    </div>
+    
+    <div class="calibration-frames">
+    <span class="calibration-frame">
+        <div id="calibrate-dist-start" class="box">
+            <button id="calibrate-dist-button" onclick="calibrateDistNext()">Calibrate Distance</button>
+            <img id="output-dist-graph" style="width:100%; max-width:50rem"></img>
+        </div>
+        
+        <div class="box">
+            <p id="equation-dist-label">Equation: </p>
+        </div>
+        
+        <div id="calibration-dist" class="box">
+            <button onclick="calibrateDistNext()">Next</button>
+            <p id="calibrate-dist-label"></p>
+        </div>
+    </span>
+
+    <span class="calibration-frame">
+        <div id="calibrate-angle-start" class="box">
+            <button id="calibrate-angle-button" onclick="calibrateAngleNext()">Calibrate Angle</button>
+            <img id="output-angle-graph" style="width:100%; max-width:50rem"></img>
+        </div>
+        
+        <div class="box">
+            <p id="equation-angle-label">Equation: </p>
+        </div>
+        
+        <div id="calibration-angle" class="box">
+            <button onclick="calibrateAngleNext()">Next</button>
+            <p id="calibrate-angle-label"></p>
+        </div>
+    </span>
+    </div>
+
     <script type="text/javascript" src="{{url_for('static', filename='index.js')}}"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='dist.js')}}"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='angle.js')}}"></script>
+    <script type="text/javascript">
+        updateEquation("{{k}}", "{{a}}");
+    </script>
 </body>
