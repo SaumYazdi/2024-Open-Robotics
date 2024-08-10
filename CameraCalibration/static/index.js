@@ -42,23 +42,6 @@ function curveFit() {
         .then(response => response.json())
 }
 
-Chart.register({
-    id: "functions",
-    beforeInit: (chart, args, opts) => {
-        var data = chart.config.data;
-        for (var i = 0; i < data.datasets.length; i++) {
-            if (data.datasets[i].function) {
-                for (var j = 0; j < data.labels.length; j++) {
-                    var fct = data.datasets[i].function,
-                        x2 = data.labels[j],
-                        y = fct(x2);
-                    data.datasets[i].data.push(y);
-                }
-            }
-        }
-    }
-});
-
 function round(value, digits) {
     let mult = Math.pow(10, digits);
     return Math.round(value * mult) / mult;
@@ -69,68 +52,13 @@ function output() {
     
     response = curveFit();
     response.then(responseData => {
-        let points = steps.map(point => point);
-        let xData = steps.map(point => point.x);
-        let min = Math.min(...xData);
-        let max = Math.max(...xData);
-        let increment = (max - min) / 10;
-        let labels = [];
-        for (let x = min; x < max; x += increment)
-            labels.push(round(x, 2));
-        
-        let k = responseData.k, a = responseData.a;
-        console.log(k, a);
-        var graphData = {
-            labels: labels,
-            datasets: [{
-                type: "scatter",
-                label: "Data",
-                data: points,
-                pointRadius: 4,
-                pointBackgroundColor: "rgba(0, 0, 255, 1)"
-            },
-            {
-                type: "line",
-                label: `Prediction (d = ${round(k, 2)}x^${round(a, 2)})`,
-                function: function(x) { return k * Math.pow(x, a) },
-                data: [],
-                borderColor: "rgba(153, 102, 255, 1)",
-                fill: false,
-                xAxisID: 'x2'
-            }]
-        };
-        graph = new Chart(outputGraph, {
-            type: "scatter",
-            data: graphData,
-            options: {
-                scales: {
-                  x: {
-                    //min: 0,
-                    //max: 300,
-                    ticks: {
-                      stepSize: 10
-                    }
-                  },
-                  x2: {
-                    //min: 0,
-                    //max: 120,
-                    position: 'bottom',
-                    type: 'category'
-                  },
-                  y: {
-                    min: 5,
-                    max: 65,
-                    ticks: {
-                      stepSize: 10
-                    }
-                    //grid: {
-                      //display: false
-                    //}
-                  },
-                }
-            }
-        });
-        
+        let graph = responseData.graph;
+        let a = responseData.a, k = responseData.k;
+        let equation = `${round(k, 2)}x^${round(a, 2)}`;
+
+        outputGraph.src = graph;
+        outputLabel.innerHTML = steps.map(point => point.x + " " + point.y).join("<br>");
+        outputLabel.innerHTML += "<br>Equation: " + equation;
         calibrateLabel.innerHTML = "";
         measurements.style = "";
         outputGraph.style.display = "block";

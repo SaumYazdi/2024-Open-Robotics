@@ -1,7 +1,6 @@
 <head>
     <title>Pi 5 Server</title>
     <link rel="stylesheet" href="{{url_for('static', filename='index.css')}}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.2/chart.js"></script>
 </head>
 
 <body>
@@ -9,8 +8,8 @@
     
     <div id="calibrate-start" class="box">
         <button id="calibrate-button" onclick="calibrateNext()">Start Calibration</button>
-        <h2 id="output-label"></h2>
-        <canvas id="output-graph" style="width:100%; max-width:700px"></canvas>
+        <p id="output-label"></p>
+        <img id="output-graph" style="width:100%; max-width:50rempx"></img>
     </div>
     
     <div id="measurements" class="box">

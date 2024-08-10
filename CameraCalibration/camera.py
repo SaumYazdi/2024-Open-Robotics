@@ -19,6 +19,7 @@ MAX_BALL_JUMP = 720 # If ball is detected, how close the new pos must be for it 
 BALL_TRACK_COLOUR = (0, 150, 255)
 BALL_DIAMETER = 6.9 # centimetres
 CALIBRATION_DISTANCE = 30
+
 if DEVICE == "pc":
     ORANGE_LOWER = (1, 114, 245)
     ORANGE_UPPER = (8, 203, 255)
