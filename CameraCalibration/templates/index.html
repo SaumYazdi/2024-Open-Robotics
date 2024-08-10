@@ -64,7 +64,7 @@
                 calibrateStart.style.display = "none";
                 calibration.style.display = "flex";
             } else
-                steps.push({x: step, y: radius});
+                steps.push({x: radius, y: step});
 
             step += 10;
             
@@ -81,6 +81,8 @@
                     }
                 });
                 
+                curveFit();
+
                 calibrateStart.style = "";
                 calibration.style = "";
                 calibrateLabel.innerHTML = "";
@@ -100,6 +102,26 @@
                 .then(response => response.json())
                 .then(data => {
                     preview.src = data.preview;
+                })
+                .catch(error => {return 0;});
+        }
+
+        function curveFit() {
+            radii = steps.map(point => point.x);
+            distance = steps.map(point => point.y);
+            fetch("/fit", {
+                method: "POST",
+                body: {
+                    radii: radii,
+                    distance: distance
+                },
+                headers: {
+                    "Content-type": "application/json; charset=UTF-8"
+                }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
                 })
                 .catch(error => {return 0;});
         }
