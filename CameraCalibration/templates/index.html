@@ -5,8 +5,13 @@
 <body>
     <h1>Robot Calibration</h1>
     <button id="calibrate-button" onclick="calibrateNext()">Start Calibration</button>
-    <p id="radius">Radius: </p>
-    <p id="distance">Estimated Distance: </p>
+    
+    <p id="radius-label">Radius: </p>
+    <p id="distance-label">Estimated Distance: </p>
+    <p id="factor-label">Factor: </p>
+    
+    <input id="factor-slider" type="range" min=1 max=5000 value=2440 /> 
+    
     <span id="calibration">
         <h2 id="calibrate-label">Pl</h2>
         <button onclick="calibrateNext()">Next</button>
@@ -17,29 +22,47 @@
 
     <script type="text/javascript">
         var radius = 0;
-        let radius = document.getElementById("radius");
-        let distance = document.getElementById("distance");
+        
+        let radiusLabel = document.getElementById("radius-label");
+        let distanceLabel = document.getElementById("distance-label");
+        let factorLabel = document.getElementById("factor-label");
+        
         let preview = document.getElementById("preview");
         let calibration = document.getElementById("calibration");
         let calibrateButton = document.getElementById("calibrate-button");
         let calibrateLabel = document.getElementById("calibrate-label");
+        let factorSlider = document.getElementById("factor-slider");
         
-        step = 30
+        
+        factor = 2440;
+        factorLabel.innerHTML = `Factor: ${factor}`;
+        factorSlider.addEventListener("input", () => {
+            factor = factorSlider.value;
+            factorLabel.innerHTML = `Factor: ${factor}`;
+        });
+        
+        steps = [];
+        step = 0;
+        
         function calibrateNext() {
-            if (calibrateButton.style == "") {
+            if (step === 0) {
                 calibrateButton.style.display = "none";
                 calibration.style.display = "flex";
-            } else {
-                console.log(step, radius);
+            } else
+                steps.push(step + " " + radius);
 
-                if (step >= 60) {
-                    calibrateButton.style = "";
-                    calibration.style = "";
-                }
-            }
-            
-            calibrateLabel.innerHTML = `Place the ball ${step}cm away from the camera.`
             step += 10;
+            
+            if (step > 60) {
+                console.log(steps.join("\n"));
+                
+                calibrateButton.style = "";
+                calibration.style = "";
+                calibrateLabel.innerHTML = "";
+                steps = [];
+                step = 0;
+            } else
+                calibrateLabel.innerHTML = `Place the ball ${step}cm away from the camera.`;
         }
 
         function showPreview() {
@@ -52,11 +75,12 @@
                 .then(response => response.json())
                 .then(data => {
                     preview.src = data.preview;
-                });
+                })
+                .catch(error => {return 0;});
         }
 
         function update() {
-            fetch("/distance", {
+            fetch("/radius", {
                 method: "POST",
                 headers: {
                     "Content-type": "application/json; charset=UTF-8"
@@ -64,9 +88,12 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    radius.innerHTML = `Radius: ${data.radius}`;
+                    radiusLabel.innerHTML = `Radius: ${data.radius}`;
                     radius = data.radius;
-                });
+                    
+                    distanceLabel.innerHTML = `Estimated Distance: ${factor / radius}`;
+                })
+                .catch(error => {return 0;});
 
             setTimeout("update();", 1000);
         }

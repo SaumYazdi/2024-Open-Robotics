@@ -4,7 +4,7 @@ from server import Server
 
 def update():
     if camera.radius:
-        server.distance = camera.radius
+        server.radius = camera.radius
     server.preview = camera.image
 
 if __name__ == "__main__":

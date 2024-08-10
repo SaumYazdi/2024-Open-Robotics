@@ -8,7 +8,7 @@ class Server(Flask):
 
         self._define_routes()
         
-        self.distance = 0
+        self.radius = 0
         self.preview = None
 
     def _define_routes(self):
@@ -16,9 +16,9 @@ class Server(Flask):
         def index():
             return render_template("index.html")
             
-        @self.route("/distance", methods=["POST"])
-        def distance():
-            return jsonify({"distance": self.distance})
+        @self.route("/radius", methods=["POST"])
+        def radius():
+            return jsonify({"radius": self.radius})
 
         @self.route("/preview", methods=["POST"])
         def preview():
