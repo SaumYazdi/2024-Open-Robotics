@@ -8,7 +8,7 @@ def update():
         server.preview = camera.image
 
 if __name__ == "__main__":
-    camera = Camera("Shibal", preview=False)
+    camera = Camera("Shibal", preview=True)
     camera.set_update(update)
     server = Server(__name__)
 

@@ -1,9 +1,11 @@
 from scipy.optimize import curve_fit
 import numpy as np
+from matplotlib import use as mpluse
 import matplotlib.pyplot as plt
 from io import BytesIO
 
 from flask import Flask, render_template, jsonify, request
+from os.path import join, dirname
 import base64
 import cv2
 import json
@@ -64,6 +66,11 @@ class Server(Flask):
             params, covariance = curve_fit(self.func, self.x_data, self.y_data, p0=self.initial_guess)
 
             self.k, self.a = params
+            
+            with open(join(dirname(__file__), "save.json"), "w") as f:
+                data = {"k": self.k, "a": self.a}
+                json.dump(data, f, sort_keys=True, indent=4)
+                f.close()
 
             x_fit = np.linspace(min(self.x_data), max(self.x_data), 137)
             y_fit = self.func(x_fit, self.k, self.a)
@@ -89,4 +96,7 @@ class Server(Flask):
             return jsonify({"k": self.k, "a": self.a, "graph": img_base64})
 
     def start(self):
+        # Agg is a non-interactive backend.
+        # Prevents the error when initialising a MPL figure.
+        mpluse("agg")
         self.run(port=8080, host="0.0.0.0")

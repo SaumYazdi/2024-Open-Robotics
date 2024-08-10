@@ -114,7 +114,7 @@ function calibrateNext() {
         calibration.style = "";
         setTimeout("output();", 500);
     } else
-        calibrateLabel.innerHTML = `Place the ball ${step}cm away from the camera.`;
+        calibrateLabel.innerHTML = `Click the 'Next' button with the ball <b>${step}cm</b> away from the camera.`;
 }
 
 function showPreview() {
@@ -137,8 +137,10 @@ function showPreview() {
     }
 }
 
+ticks = 0;
 function update() {
-    if (updating) {
+    if (updating && (ticks % Math.round(1000 / UPDATE_INTERVAL) == 0)) {
+        // Sends a fetch radius request every second regardless of update interval.
         fetch("/radius", {
             method: "POST",
             headers: {
@@ -156,6 +158,7 @@ function update() {
             .catch(error => {return 0;});
     }
     if (visible) {
+        // Retrieve camera image
         fetch("/preview" , {
             method: "POST",
             headers: {
@@ -168,6 +171,8 @@ function update() {
             })
             .catch(error => {return 0;});
     }
+
+    ticks++;
 
     setTimeout("update();", UPDATE_INTERVAL);
 }
