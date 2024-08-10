@@ -58,7 +58,7 @@ function output() {
 
         outputGraph.src = graph;
         outputLabel.innerHTML = steps.map(point => point.x + " " + point.y).join("<br>");
-        outputLabel.innerHTML += "<br>Equation: " + equation;
+        outputLabel.innerHTML += `<b><br>Equation: ${equation}</b>`;
         calibrateLabel.innerHTML = "";
         measurements.style = "";
         outputGraph.style.display = "block";

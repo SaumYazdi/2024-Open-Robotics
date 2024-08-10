@@ -67,9 +67,9 @@ class Server(Flask):
             plt.ylabel("Distance",fontsize=17)
             plt.title("Radius vs Distance",fontsize=22)
 
-            equation = f"y = {self.k:.2f}*x^{self.a:.2f}"
+            equation = f"y = {self.k:.2f}x^{self.a:.2f}"
             
-            plt.text(8, 16, equation, fontsize=19, color='red',
+            plt.text(50, 16, equation, fontsize=19, color='red',
                 bbox={'facecolor': 'white', 'alpha': 0.7, 'edgecolor': 'gray'})
             img = BytesIO()
             plt.savefig(img, format="png")
