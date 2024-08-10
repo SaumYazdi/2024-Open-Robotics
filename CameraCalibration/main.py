@@ -3,9 +3,9 @@ from camera import Camera
 from server import Server
 
 def update():
-    if camera.radius:
-        server.radius = camera.radius
-    server.preview = camera.image
+    server.radius = camera.radius
+    if server.show_preview:
+        server.preview = camera.image
 
 if __name__ == "__main__":
     camera = Camera("Shibal", preview=False)

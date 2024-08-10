@@ -15,10 +15,11 @@ class Server(Flask):
         super().__init__(*args, **kwargs)
 
         self._define_routes()
-        
-        self.radius = 0
-        self.preview = None
 
+        self.preview = None
+        self.show_preview = False
+        
+        self.radius = None
         self.a = self.k = None
 
     def func(self, x, k, a):
@@ -33,14 +34,23 @@ class Server(Flask):
         def radius():
             return jsonify({"radius": self.radius})
 
+        @self.route("/hidePreview", methods=["POST"])
+        def hide_preview():
+            self.show_preview = False
+            return jsonify({})
+        
         @self.route("/preview", methods=["POST"])
         def preview():
+            if not self.show_preview:
+                self.show_preview = True
+                
             if self.preview is None:
-                return
+                return jsonify({"preview": None})
             
             _, img_arr = cv2.imencode(".png", self.preview)
             img_bytes = img_arr.tobytes()
             image = PNG_START + base64.b64encode(img_bytes).decode("utf-8")
+            
             return jsonify({"preview": image})
         
         @self.route("/fit", methods=["POST"])

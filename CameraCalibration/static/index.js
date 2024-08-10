@@ -1,20 +1,37 @@
 var radius = 0;
-        
-let radiusLabel = document.getElementById("radius-label");
-let distanceLabel = document.getElementById("distance-label");
-let factorLabel = document.getElementById("factor-label");
-let factorSlider = document.getElementById("factor-slider");
 
-let measurements = document.getElementById("measurements");
-let calibrateStart = document.getElementById("calibrate-start");
-let outputLabel = document.getElementById("output-label");
-let outputGraph = document.getElementById("output-graph");
+function getE(id) {
+    return document.getElementById(id);
+}
+
+let detectedLabel = getE("detected-label");
+let radiusLabel = getE("radius-label");
+let distanceLabel = getE("distance-label");
+let factorLabel = getE("factor-label");
+let factorSlider = getE("factor-slider");
+
+let measurements = getE("measurements");
+let calibrateStart = getE("calibrate-start");
+let outputLabel = getE("output-label");
+let outputGraph = getE("output-graph");
 outputGraph.style.display = "none";
-let calibration = document.getElementById("calibration");
-let calibrateLabel = document.getElementById("calibrate-label");
-let preview = document.getElementById("preview");
 
-updating = true;
+let calibration = getE("calibration");
+let calibrateLabel = getE("calibrate-label");
+let updateLabel = getE("update-label");
+let updateSlider = getE("update-slider");
+let preview = getE("preview");
+let previewButton = getE("preview-button");
+
+UPDATE_INTERVAL = 200 //ms
+updateLabel.innerHTML = `Update Interval: ${round(UPDATE_INTERVAL * .001, 3)}s`;
+updateSlider.addEventListener("input", () => {
+    UPDATE_INTERVAL = updateSlider.value;
+    updateLabel.innerHTML = `Update Interval: ${round(UPDATE_INTERVAL * .001, 3)}s`;
+});
+
+var updating = true;
+var visible = false;
 
 factor = 2440;
 factorLabel.innerHTML = `Factor: ${factor}`;
@@ -101,17 +118,23 @@ function calibrateNext() {
 }
 
 function showPreview() {
-    fetch("/preview", {
-        method: "POST",
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-        })
-        .then(response => response.json())
-        .then(data => {
-            preview.src = data.preview;
-        })
-        .catch(error => {return 0;});
+    let text = previewButton.innerHTML;
+    if (text == "Show Preview") {
+        previewButton.innerHTML = "Hide Preview";
+        preview.style.display = "block";
+        visible = true;
+    } else {
+        previewButton.innerHTML = "Show Preview";
+        preview.style = "";
+        visible = false;
+        fetch("hidePreview", {
+                method: "POST",
+                headers: {
+                    "Content-type": "application/json; charset=UTF-8"
+                }
+            })
+            .catch(error => {return 0;});
+    }
 }
 
 function update() {
@@ -124,6 +147,7 @@ function update() {
             })
             .then(response => response.json())
             .then(data => {
+                detectedLabel.innerHTML = `Detected: ${(data.radius !== null)}`
                 radiusLabel.innerHTML = `Radius: ${data.radius}`;
                 radius = data.radius;
                 
@@ -131,8 +155,21 @@ function update() {
             })
             .catch(error => {return 0;});
     }
+    if (visible) {
+        fetch("/preview" , {
+            method: "POST",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+            })
+            .then(response => response.json())
+            .then(data => {
+                preview.src = data.preview;
+            })
+            .catch(error => {return 0;});
+    }
 
-    setTimeout("update();", 1000);
+    setTimeout("update();", UPDATE_INTERVAL);
 }
 
 update();

@@ -26,6 +26,6 @@ button {
     color: white;
 }
 
-#calibration {
+#calibration, #preview {
     display: none;
 }

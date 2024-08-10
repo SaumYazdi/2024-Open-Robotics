@@ -13,6 +13,7 @@
     </div>
     
     <div id="measurements" class="box">
+        <p id="detected-label">Detected: </p>
         <p id="radius-label">Radius: </p>
         <p id="distance-label">Estimated Distance: </p>
     </div>
@@ -28,7 +29,9 @@
     </div>
 
     <div class="box">
-        <button onclick="showPreview()">Show Preview</button>
+        <button id="preview-button" onclick="showPreview()">Show Preview</button>
+        <p id="update-label">Update Interval: </p>
+        <input id="update-slider" type="range" min=100 max=1000 value=500 />
         <img id="preview" src="" alt="Preview"/>
     </div>
 
