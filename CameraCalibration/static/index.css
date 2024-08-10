@@ -1,0 +1,35 @@
+body {
+    display: flex;
+    flex-direction: column;
+    background: #1a1a1a;
+}
+
+div.box {
+    display: flex;
+    flex-direction: column;
+    border-radius: 0.5rem;
+    background: #2d2d2d;
+    padding: 0.5rem;
+    border: 1px solid #676767;
+    margin: 1rem;
+}
+
+p, h1, h2 {
+    color: #fff;
+}
+
+button {
+    height: 3rem;
+    width: 5rem;
+    margin: 1rem;
+    background: #303643;
+    color: white;
+}
+
+#calibration {
+    display: none;
+}
+
+#output-graph {
+    background: white;
+}
