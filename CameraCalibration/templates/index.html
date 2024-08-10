@@ -1,7 +1,7 @@
 <head>
     <title>Pi 5 Server</title>
     <link rel="stylesheet" href="{{url_for('static', filename='index.css')}}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.2/chart.js"></script>
 </head>
 
 <body>
@@ -13,7 +13,7 @@
         <canvas id="output-graph" style="width:100%; max-width:700px"></canvas>
     </div>
     
-    <div class="box">
+    <div id="measurements" class="box">
         <p id="radius-label">Radius: </p>
         <p id="distance-label">Estimated Distance: </p>
     </div>
@@ -33,118 +33,5 @@
         <img id="preview" src="" alt="Preview"/>
     </div>
 
-    <script type="text/javascript">
-        var radius = 0;
-        
-        let radiusLabel = document.getElementById("radius-label");
-        let distanceLabel = document.getElementById("distance-label");
-        let factorLabel = document.getElementById("factor-label");
-        let factorSlider = document.getElementById("factor-slider");
-        
-        let calibrateStart = document.getElementById("calibrate-start");
-        let outputLabel = document.getElementById("output-label");
-        //let outputGraph = document.getElementById("output-graph");
-        let calibration = document.getElementById("calibration");
-        let calibrateLabel = document.getElementById("calibrate-label");
-        let preview = document.getElementById("preview");
-        
-        
-        factor = 2440;
-        factorLabel.innerHTML = `Factor: ${factor}`;
-        factorSlider.addEventListener("input", () => {
-            factor = factorSlider.value;
-            factorLabel.innerHTML = `Factor: ${factor}`;
-        });
-        
-        steps = [];
-        step = 0;
-        
-        function calibrateNext() {
-            if (step === 0) {
-                calibrateStart.style.display = "none";
-                calibration.style.display = "flex";
-            } else
-                steps.push({x: radius, y: step});
-
-            step += 10;
-            
-            if (step > 60) {
-                outputLabel.innerHTML = steps.map(point => point.x + " " + point.y).join("<br>");
-                graph = new Chart("output-graph", {
-                    type: "scatter",
-                    data: {
-                        datasets: [{
-                            pointRadius: 4,
-                            pointBackgroundColor: "rgba(0, 0, 255, 1)",
-                            data: steps
-                        }]
-                    }
-                });
-                
-                curveFit();
-
-                calibrateStart.style = "";
-                calibration.style = "";
-                calibrateLabel.innerHTML = "";
-                steps = [];
-                step = 0;
-            } else
-                calibrateLabel.innerHTML = `Place the ball ${step}cm away from the camera.`;
-        }
-
-        function showPreview() {
-            fetch("/preview", {
-                method: "POST",
-                headers: {
-                    "Content-type": "application/json; charset=UTF-8"
-                }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    preview.src = data.preview;
-                })
-                .catch(error => {return 0;});
-        }
-
-        function curveFit() {
-            radii = steps.map(point => point.x);
-            distance = steps.map(point => point.y);
-            fetch("/fit", {
-                method: "POST",
-                body: {
-                    radii: radii,
-                    distance: distance
-                },
-                headers: {
-                    "Content-type": "application/json; charset=UTF-8"
-                }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data);
-                })
-                .catch(error => {return 0;});
-        }
-
-        function update() {
-            fetch("/radius", {
-                method: "POST",
-                headers: {
-                    "Content-type": "application/json; charset=UTF-8"
-                }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    radiusLabel.innerHTML = `Radius: ${data.radius}`;
-                    radius = data.radius;
-                    
-                    distanceLabel.innerHTML = `Estimated Distance: ${factor / radius}`;
-                })
-                .catch(error => {return 0;});
-
-            setTimeout("update();", 1000);
-        }
-
-        update();
-    </script>
+    <script type="text/javascript" src="{{url_for('static', filename='index.js')}}"></script>
 </body>
