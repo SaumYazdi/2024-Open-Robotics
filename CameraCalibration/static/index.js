@@ -14,6 +14,7 @@ let measurements = getE("measurements");
 let updateLabel = getE("update-label");
 let updateSlider = getE("update-slider");
 
+let previewStream = getE("preview-stream");
 let previewFrame = getE("preview-frame");
 let preview = getE("preview");
 let previewButton = getE("preview-button");
@@ -57,10 +58,12 @@ var visible = false; // Preview visibility
 function showPreview() {
     let text = previewButton.innerHTML;
     if (text == "Show Preview") {
+        previewStream.src = "/preview";
         previewButton.innerHTML = "Hide Preview";
         previewFrame.style.display = "flex";
         visible = true;
     } else {
+        previewStream.src = "";
         previewButton.innerHTML = "Show Preview";
         previewFrame.style = "";
         visible = false;
@@ -121,22 +124,22 @@ function update() {
             .catch(error => {return 0;});
     }
     
-    if (visible && (ticks % Math.round(UPDATE_INTERVAL / 100) == 0)) {
-        // Retrieve camera image
-        if (!colorSwitch.checked) {
-            fetch("/preview" , {
-                method: "POST",
-                headers: {
-                    "Content-type": "application/json; charset=UTF-8"
-                }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    setPreview(data.preview);
-                })
-                .catch(error => {return 0;});
-        }
-    }
+    // if (visible && (ticks % Math.round(UPDATE_INTERVAL / 100) == 0)) {
+    //     // Retrieve camera image
+    //     if (!colorSwitch.checked) {
+    //         fetch("/preview" , {
+    //             method: "POST",
+    //             headers: {
+    //                 "Content-type": "application/json; charset=UTF-8"
+    //             }
+    //             })
+    //             .then(response => response.json())
+    //             .then(data => {
+    //                 setPreview(data.preview);
+    //             })
+    //             .catch(error => {return 0;});
+    //     }
+    // }
 
     ticks++;
 
@@ -144,3 +147,5 @@ function update() {
 }
 
 update();
+
+previewStream.addEventListener("load", () => {setPreview();});

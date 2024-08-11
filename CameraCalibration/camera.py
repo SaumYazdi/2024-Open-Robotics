@@ -16,9 +16,10 @@ except ImportError:
     from imutils.video import VideoStream
     DEVICE = "pc"
 
+RESIZE_WIDTH = 640
 BUFFER_SIZE = 64
 MAX_BALL_JUMP = 720 # If ball is detected, how close the new pos must be for it the current position to update
-BALL_TRACK_COLOUR = (0, 50, 255)
+BALL_TRACK_COLOUR = (0, 0, 0)
 
 BALL_DIAMETER = 6.9 #cm
 CALIBRATION_DISTANCE = 30 #cm
@@ -56,9 +57,6 @@ def get_angle(x, distance):
 class Camera:
     def __init__(self, window_name: str,
             preview: bool = False, draw_detections: bool = False):
-                
-        # self.points = deque(maxlen=BUFFER_SIZE)
-        
         if DEVICE == "pi":
             self.video_stream = Picamera2()
             config = self.video_stream.create_still_configuration(main={"format": 'XRGB8888', "size": [640, 320]})
@@ -69,10 +67,11 @@ class Camera:
         self.window_name = window_name
         self.preview = preview
         self.draw_detections = draw_detections
-
+                
         self.pos = None
         self.radius = None
-        self.velocity = None
+        # self.velocity = None
+        # self.points = deque(maxlen=BUFFER_SIZE)
         
         self.dist = None
 
@@ -120,10 +119,10 @@ class Camera:
                     self.radius = radius
 
                 if dist_squared(self.pos, pos) < MAX_BALL_JUMP ** 2:
-                    old_pos = self.pos.copy()
+                    # old_pos = self.pos.copy()
                     self.pos.x = lerp(self.pos.x, x, LERP_STEP)
                     self.pos.y = lerp(self.pos.y, y, LERP_STEP)
-                    self.velocity = Vector(self.pos.x - old_pos.x, self.pos.y - old_pos.y)
+                    # self.velocity = Vector(self.pos.x - old_pos.x, self.pos.y - old_pos.y)
 
                     self.radius = lerp(self.radius, radius, LERP_STEP)
                     self.dist = get_dist(self.radius)
@@ -148,6 +147,7 @@ class Camera:
             self.dist = None
 
         # self.points.appendleft(self.pos.int() if self.pos else None)
+        return frame
         
     def read(self):
         if DEVICE == "pc":
@@ -162,8 +162,9 @@ class Camera:
         
         # Important or detection will break!
         # Resize to detection resolution
-        frame = imutils.resize(frame, width=480)
-        self.compute(frame)
+        if type(RESIZE_WIDTH) == int:
+            frame = imutils.resize(frame, width=RESIZE_WIDTH)
+        frame = self.compute(frame)
 
         if self.draw_detections:
             # Draw Ball Trail
@@ -175,7 +176,7 @@ class Camera:
                 # cv2.line(frame, self.points[i - 1], self.points[i], BALL_TRACK_COLOUR, thickness)
             
             if self.pos and self.radius:
-                cv2.circle(frame, self.pos.int(), int(self.radius), BALL_TRACK_COLOUR, 2)
+                cv2.circle(frame, self.pos.int(), int(self.radius), BALL_TRACK_COLOUR, 1, cv2.LINE_AA)
 
                 # Draw Velocity Vector
                 # point2 = Vector(self.pos.x + self.velocity.x * 50, self.pos.y + self.velocity.y * 50)

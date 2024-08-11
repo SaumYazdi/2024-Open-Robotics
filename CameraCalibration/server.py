@@ -4,7 +4,7 @@ from matplotlib import use as mpluse
 import matplotlib.pyplot as plt
 from io import BytesIO
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 from os.path import join, dirname
 import base64
 import cv2
@@ -36,6 +36,28 @@ class Server(Flask):
         self.m = self.c = None
         self.lower = self.upper = None
 
+    def gen_preview(self):
+        """
+        Video Stream
+        """
+        while self.show_preview:
+            if self.preview is not None:
+                _, img_arr = cv2.imencode(".jpeg", self.preview)
+                img_bytes = img_arr.tobytes()
+                # image = PNG_START + base64.b64encode(img_bytes).decode("utf-8")
+                image = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_bytes + b'\r\n')
+                yield image
+
+    def gen_radius(self):
+        """
+        Video Stream
+        """
+        while True:
+            if self.radius is not None:
+                # image = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_bytes + b'\r\n')
+                text = str(self.radius).encode("utf-8") + b'\r\n'
+                yield text
+
     def _define_routes(self):
         @self.route("/")
         def index():
@@ -46,9 +68,10 @@ class Server(Flask):
                 f.close()
             return render_template("index.html", a=dist["a"], k=dist["k"], m=angle["m"], c=angle["c"])
             
-        @self.route("/radius", methods=["POST"])
+        @self.route("/radius")
         def radius():
-            return jsonify({"radius": self.radius})
+            # return jsonify({"radius": self.radius})
+            return Response(self.gen_radius(), mimetype='text/plain')
  
         @self.route("/xOffset", methods=["POST"])
         def x_offset():
@@ -59,19 +82,11 @@ class Server(Flask):
             self.show_preview = False
             return jsonify({})
         
-        @self.route("/preview", methods=["POST"])
+        @self.route("/preview")
         def preview():
-            if not self.show_preview:
-                self.show_preview = True
-                
-            if self.preview is None:
-                return jsonify({"preview": None})
+            self.show_preview = True
             
-            _, img_arr = cv2.imencode(".png", self.preview)
-            img_bytes = img_arr.tobytes()
-            image = PNG_START + base64.b64encode(img_bytes).decode("utf-8")
-            
-            return jsonify({"preview": image})
+            return Response(self.gen_preview(), mimetype='multipart/x-mixed-replace; boundary=frame')
          
         @self.route("/fitAngle", methods=["POST"])
         def fit_angle():

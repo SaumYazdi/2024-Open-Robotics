@@ -13,9 +13,21 @@ function extractPixelColor(cols, x, y) {
     };
 };
 
-function colorSelect() {
+function clearSelectedColours() {
     selectedColors = [];
     colorsLabel.innerHTML = `Selecting Colours: ${colorSwitch.checked}`;
+}
+
+function colorSelect() {
+    clearSelectedColours();
+    if (colorSwitch.checked) {
+        setPreview();
+        preview.style.display = "block";
+        previewStream.style.display = "none";
+    } else {
+        preview.style = "";
+        previewStream.style = "";
+    }
 }
 
 function calibrateColors() {
@@ -38,14 +50,14 @@ function calibrateColors() {
 var selectedColors = [];
 var pixelColor;
 var imageData;
-function setPreview(src) {
+function setPreview() {
     if (visible == false)
         return null;
         
     let img = new window.Image();
     img.crossOrigin = `Anonymous`;
     
-    img.src = src;
+    img.src = previewStream.src;
     img.onload = function() {
     
         preview.width = img.width;
@@ -69,10 +81,10 @@ function setPreview(src) {
             
             let c = extractPixelColor(cols, y, x);
             pixelColor = `(${c.red}, ${c.green}, ${c.blue})`;
-            previewContext.fillStyle = "white";
-            previewContext.fillRect(0, preview.height - 50, 50, 50);
-            previewContext.fillStyle = "rgb" + pixelColor;
-            previewContext.fillRect(5, preview.height - 45, 40, 40);
+            // previewContext.fillStyle = "white";
+            // previewContext.fillRect(0, preview.height - 50, 50, 50);
+            // previewContext.fillStyle = "rgb" + pixelColor;
+            // previewContext.fillRect(5, preview.height - 45, 40, 40);
         };
     };
 }

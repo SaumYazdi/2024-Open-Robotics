@@ -4,6 +4,14 @@ body {
     background: #1a1a1a;
 }
 
+.main-body {
+    width: 100%;
+    max-width: 100rem;
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+}
+
 div.box {
     display: flex;
     flex-direction: column;
@@ -48,4 +56,8 @@ button {
 #color-select {
     width: 1.5rem;
     margin: 0.5rem;
+}
+
+#preview {
+    display: none;
 }

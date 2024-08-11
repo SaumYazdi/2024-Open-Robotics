@@ -19,7 +19,7 @@ def update():
         server.preview = camera.image.copy()
 
 if __name__ == "__main__":
-    camera = Camera("Shibal", preview=False, draw_detections=True)
+    camera = Camera("Ball Detector", preview=False, draw_detections=True)
     camera.set_update(update)
     server = Server(__name__)
 

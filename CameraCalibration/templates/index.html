@@ -4,70 +4,73 @@
 </head>
 
 <body>
-    <h1>Robot Calibration</h1>
-    
-    <div class="box">
-        <button id="preview-button" onclick="showPreview()">Show Preview</button>
-        <span id="preview-frame">
-            <p id="update-label">Update Interval: </p>
-            <input id="update-slider" type="range" min=100 max=1000 value=500 />
-            <canvas id="preview" alt="Preview"></canvas>
-            <span style="display: flex;">
-                <input id="color-select" onclick="colorSelect();" type="checkbox">
-                <p id="colors">Selecting Colours: false</p>
-            </span>
-            <span>
-                <button onclick="colorSelect()">Clear Colours</button>
-                <button onclick="calibrateColors()">Calibrate Colours</button>
-            </span>
-        </span>
-    </div>
-
-    <div id="measurements-frame" class="box">
-        <h2 id="detected-label">Detected: </h2>
-        <span id="measurements">
-            <p id="radius-label">Radius: </p>
-            <p id="distance-label">Estimated Distance: </p>
-            <p id="x-label">Estimated X: </p>
-            <p id="angle-label">Estimated Angle: </p>
-        </span>
-        <p id="measure-label">Measure every 1s</p>
-        <input id="measure-slider" type="range" min=100 max=1000 value=1000 />
-    </div>
-    
-    <div class="calibration-frames">
-    <span class="calibration-frame">
-        <div id="calibrate-dist-start" class="box">
-            <button id="calibrate-dist-button" onclick="calibrateDistNext()">Calibrate Distance</button>
-        </div>
+    <span class="main-body">
+        <h1>Robot Calibration</h1>
         
         <div class="box">
-            <p id="equation-dist-label">Equation: </p>
-            <img id="dist-graph" src="{{url_for('static', filename='dist.png')}}">
+            <button id="preview-button" onclick="showPreview()">Show Preview</button>
+            <span id="preview-frame">
+                <p id="update-label">Update Interval: </p>
+                <input id="update-slider" type="range" min=100 max=1000 value=500 />
+                <img id="preview-stream" />
+                <canvas id="preview" alt="Preview"></canvas>
+                <span style="display: flex;">
+                    <input id="color-select" onclick="colorSelect();" type="checkbox">
+                    <p id="colors">Selecting Colours: false</p>
+                </span>
+                <span>
+                    <button onclick="clearSelectedColours()">Clear Colours</button>
+                    <button onclick="calibrateColors()">Calibrate Colours</button>
+                </span>
+            </span>
         </div>
-        
-        <div id="calibration-dist" class="box">
-            <button onclick="calibrateDistNext()">Next</button>
-            <p id="calibrate-dist-label"></p>
-        </div>
-    </span>
 
-    <span class="calibration-frame">
-        <div id="calibrate-angle-start" class="box">
-            <button id="calibrate-angle-button" onclick="calibrateAngleNext()">Calibrate Angle</button>
+        <div id="measurements-frame" class="box">
+            <h2 id="detected-label">Detected: </h2>
+            <span id="measurements">
+                <p id="radius-label">Radius: </p>
+                <p id="distance-label">Estimated Distance: </p>
+                <p id="x-label">Estimated X: </p>
+                <p id="angle-label">Estimated Angle: </p>
+            </span>
+            <p id="measure-label">Measure every 1s</p>
+            <input id="measure-slider" type="range" min=100 max=1000 value=1000 />
         </div>
         
-        <div class="box">
-            <p id="equation-angle-label">Equation: </p>
-            <img id="angle-graph" src="{{url_for('static', filename='angle.png')}}">
-        </div>
-        
-        <div id="calibration-angle" class="box">
-            <button onclick="calibrateAngleNext()">Next</button>
-            <p id="calibrate-angle-label"></p>
+        <div class="calibration-frames">
+        <span class="calibration-frame">
+            <div id="calibrate-dist-start" class="box">
+                <button id="calibrate-dist-button" onclick="calibrateDistNext()">Calibrate Distance</button>
+            </div>
+            
+            <div class="box">
+                <p id="equation-dist-label">Equation: </p>
+                <img id="dist-graph" src="{{url_for('static', filename='dist.png')}}">
+            </div>
+            
+            <div id="calibration-dist" class="box">
+                <button onclick="calibrateDistNext()">Next</button>
+                <p id="calibrate-dist-label"></p>
+            </div>
+        </span>
+
+        <span class="calibration-frame">
+            <div id="calibrate-angle-start" class="box">
+                <button id="calibrate-angle-button" onclick="calibrateAngleNext()">Calibrate Angle</button>
+            </div>
+            
+            <div class="box">
+                <p id="equation-angle-label">Equation: </p>
+                <img id="angle-graph" src="{{url_for('static', filename='angle.png')}}">
+            </div>
+            
+            <div id="calibration-angle" class="box">
+                <button onclick="calibrateAngleNext()">Next</button>
+                <p id="calibrate-angle-label"></p>
+            </div>
+        </span>
         </div>
     </span>
-    </div>
 
     <script type="text/javascript" src="{{url_for('static', filename='index.js')}}"></script>
     <script type="text/javascript" src="{{url_for('static', filename='dist.js')}}"></script>
