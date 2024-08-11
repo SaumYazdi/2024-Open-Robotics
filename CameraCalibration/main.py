@@ -14,7 +14,8 @@ def update():
     if server.lower and server.upper:
         camera.set_color_bounds(server.lower, server.upper)
         server.lower = server.upper = None
-        
+    
+    server.fps = camera.fps
     if server.show_preview:
         server.preview = camera.image.copy()
 

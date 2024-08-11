@@ -31,9 +31,8 @@ class Robot:
         self.distance = camera.get_distance()
         self.angle = camera.get_angle()
         
-        self.send("test")
-        
-        print(f"Distance: {str(self.distance): <16} Angle: {str(self.angle): <16}")
+        # self.send("test")
+        # print(f"Distance: {str(self.distance): <16} Angle: {str(self.angle): <16}")
         
     def send(self, value: str | bytes):
         """
