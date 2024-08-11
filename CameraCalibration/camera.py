@@ -73,7 +73,8 @@ class Camera:
         # self.velocity = None
         # self.points = deque(maxlen=BUFFER_SIZE)
         
-        self.dist = None
+        self.distance = None
+        self.angle = None
 
         self.image = None
         self.color_mask = None
@@ -98,6 +99,20 @@ class Camera:
         
         return mask
 
+    def get_distance(self):
+        if self.radius is None:
+            return None
+        if self.distance is None:
+            return get_dist(self.radius)
+        return self.distance
+
+    def get_angle(self):
+        if self.radius is None:
+            return None
+        if self.angle is None:
+            return get_angle(self.pos.x, self.get_distance())
+        return self.distance
+        
     def compute(self, frame):
         mask = self.get_mask(frame)
         contours = cv2.findContours(mask, cv2.RETR_EXTERNAL,
@@ -125,26 +140,26 @@ class Camera:
                     # self.velocity = Vector(self.pos.x - old_pos.x, self.pos.y - old_pos.y)
 
                     self.radius = lerp(self.radius, radius, LERP_STEP)
-                    self.dist = get_dist(self.radius)
+                    self.distance = get_dist(self.radius)
+                    self.angle = degrees(get_angle(self.pos.x, self.distance))
                     
                 if self.draw_detections:
                     # Draw True Circle Pos and Centroid
                     # cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
                     # cv2.circle(frame, center, 2, BALL_TRACK_COLOUR, -1)
-                    distance = get_dist(self.radius)
-                    angle = degrees(get_angle(self.pos.x, distance))
                     scale = self.radius * .006
                     
                     font = cv2.FONT_HERSHEY_SIMPLEX
                     text_pos = [int(self.pos.x - 140 * scale), int(self.pos.y - 25 * scale)]
                     thickness = 1
-                    cv2.putText(frame, f"dist: {distance:.2f}cm", text_pos, font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
-                    cv2.putText(frame, f"angle: {angle:.2f} deg", (text_pos[0], int(text_pos[1] + 50 * scale)), font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
+                    cv2.putText(frame, f"dist: {self.distance:.2f}cm", text_pos, font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
+                    cv2.putText(frame, f"angle: {self.angle:.2f} deg", (text_pos[0], int(text_pos[1] + 50 * scale)), font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
 
         else:
             self.pos = None
             self.radius = None
-            self.dist = None
+            self.distance = None
+            self.angle = None
 
         # self.points.appendleft(self.pos.int() if self.pos else None)
         return frame

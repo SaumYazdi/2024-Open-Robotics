@@ -1,5 +1,4 @@
 # Components
-- Pixy2 CMUcam5?
 - Powerful Brushless Motor v4.2 Special Edition x4
 - Raspberry Pi Pico
 - Raspberry Pi 5
@@ -7,14 +6,11 @@
 
 ## **SUBSYSTEMS**
 1. SubDrivebase
-
+2. Camera Vision
 
 # Todo
-- Camera stream processing
-- Orange ball detection
-- Wide lens?
-
-- If PC server dies then robot keeps driving without team comms
+- Increase camera FOV
+- Serialise ball data from Pi 5 to Pico
 
 # 2024 Season Goals
 ## What can a robot do?
