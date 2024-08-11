@@ -1,14 +1,10 @@
+"""
+Main camera systems which will parse the ball location data to the main
+"""
+
 from camera import Camera
 from math import degrees
 import serial
-
-"""
-Usage:
-    - Camera.get_distance(): Returns the ball's estimated distance
-                                from the camera in centimetres.
-    - Camera.get_angle():    Returns the angle of the ball relative
-                                to the camera in radians.
-"""
 
 RECEIVER = "/dev/ttyACM0" # Work out the name for PICO
 BAUD_RATE = 9600

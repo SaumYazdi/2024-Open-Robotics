@@ -1,3 +1,9 @@
+"""
+- Vector(x, y)
+- lerp(a, b, [step])
+- dist_squared(a<Vector>, b<Vector>)
+"""
+
 class Vector:
     """
     A 2D Vector defined by an x and y value.

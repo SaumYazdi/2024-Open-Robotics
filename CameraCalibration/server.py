@@ -1,11 +1,15 @@
+"""
+Flask server to handle the calibration control panel.
+"""
+
+from flask import Flask, render_template, jsonify, request, Response
+import logging
+
 from scipy.optimize import curve_fit
 import numpy as np
 from matplotlib import use as mpluse
 import matplotlib.pyplot as plt
 from io import BytesIO
-
-from flask import Flask, render_template, jsonify, request, Response
-import logging
 
 from os.path import join, dirname
 import base64

@@ -1,3 +1,8 @@
+"""
+Calibration control panel.
+Run this file 'main.py' and access the control panel at <ipv4-address>:8080
+"""
+
 from threading import Thread
 from camera import Camera
 from server import Server

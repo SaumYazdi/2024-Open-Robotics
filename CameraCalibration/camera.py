@@ -1,4 +1,10 @@
-# "env/bin/python" CameraCalibration/main.py
+"""
+Usage:
+    - Camera.get_distance(): Returns the ball's estimated distance
+                                from the camera in centimetres.
+    - Camera.get_angle():    Returns the angle of the ball relative
+                                to the camera in radians.
+"""
 
 from collections import deque
 import numpy as np
