@@ -26,8 +26,12 @@ button {
     color: white;
 }
 
-#calibration-dist, #calibration-angle, #preview {
+#calibration-dist, #calibration-angle, #preview-frame {
     display: none;
+}
+
+#preview-frame {
+    flex-direction: column;
 }
 
 .calibration-frames {

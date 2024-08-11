@@ -8,10 +8,15 @@
     
     <div class="box">
         <button id="preview-button" onclick="showPreview()">Show Preview</button>
-        <p id="update-label">Update Interval: </p>
-        <input id="update-slider" type="range" min=100 max=1000 value=500 />
-        <canvas id="preview" alt="Preview"></canvas>
-        <input type="radio">
+        <span id="preview-frame">
+            <p id="update-label">Update Interval: </p>
+            <input id="update-slider" type="range" min=100 max=1000 value=500 />
+            <canvas id="preview" alt="Preview"></canvas>
+            <p id="colors">Selecting Colours: false</p>
+            <input id="color-select" onclick="colorSelect();" type="checkbox">
+            <button onclick="colorSelect()">Clear Colours</button>
+            <button onclick="calibrateColors()">Calibrate Colours</button>
+        </span>
     </div>
 
     <div id="measurements" class="box">

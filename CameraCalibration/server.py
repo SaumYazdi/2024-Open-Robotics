@@ -158,6 +158,35 @@ class Server(Flask):
 
             return jsonify({"k": self.k, "a": self.a, "graph": img_base64})
 
+        @self.route("/calibrateColors", methods=["POST"])
+        def calibrate_colors():
+            colors = json.loads(request.data)
+            
+            lower = [255, 255, 255]
+            upper = [0, 0, 0]
+            for color in colors:
+                color = [int(x) for x in color[1:-1].split(", ")]
+                for i in range(3):
+                    if color[i] < lower[i]:
+                        lower[i] = color[i]
+                    if color[i] > upper[i]:
+                        upper[i] = color[i]
+                        
+            # Convert from RGB to BGR
+            lower = lower[::-1]
+            upper = upper[::-1]
+            
+            # Save to save.json
+            with open(save_path, "r") as f:
+                data = json.load(f)
+                f.close()
+            data["color"] = {"lower": lower, "upper": upper}
+            with open(save_path, "w") as f:
+                json.dump(data, f, sort_keys=True, indent=4)
+                f.close()
+                        
+            return jsonify({})
+
     def start(self):
         # Agg is a non-interactive backend.
         # Prevents the error when initialising a MPL figure.

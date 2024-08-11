@@ -23,13 +23,13 @@ BALL_DIAMETER = 6.9 #cm
 CALIBRATION_DISTANCE = 30 #cm
 
 if DEVICE == "pc":
-    ORANGE_LOWER = (1, 114, 245)
-    ORANGE_UPPER = (8, 203, 255)
+    # ORANGE_LOWER = (1, 114, 245)
+    # ORANGE_UPPER = (8, 203, 255)
     LERP_STEP = 0.4
     FPS_UPDATE = 120
 elif DEVICE == "pi":
-    ORANGE_LOWER = (1, 235, 230)
-    ORANGE_UPPER = (11, 255, 255)
+    # ORANGE_LOWER = (1, 235, 230)
+    # ORANGE_UPPER = (11, 255, 255)
     LERP_STEP = 0.8
     FPS_UPDATE = 24
 
@@ -41,7 +41,12 @@ with open(save_path, "r") as f:
     data = json.load(f)
     dist = data["dist"]
     angle = data["angle"]
+    color = data["color"]
     f.close()
+    
+ORANGE_LOWER = color["lower"]
+ORANGE_UPPER = color["upper"]
+print(ORANGE_LOWER, ORANGE_UPPER)
 
 def get_dist(radius):
     return dist["k"] * pow(radius, dist["a"])
