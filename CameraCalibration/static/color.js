@@ -30,6 +30,8 @@ function calibrateColors() {
         }
     })
     .catch(error => {return 0;});
+    
+    colorSwitch.checked = false;
 }
 
 var selectedColors = [];

@@ -1,19 +1,18 @@
 
 let distEquationLabel = getE("equation-dist-label");
+let distGraph = getE("dist-graph");
 
 let calibrateDistStart = getE("calibrate-dist-start");
-let distOutputGraph = getE("output-dist-graph");
-distOutputGraph.style.display = "none";
 
 let calibrationDistFrame = getE("calibration-dist");
 let calibrateDistLabel = getE("calibrate-dist-label");
 
-steps = [];
-step = 0;
+distSteps = [];
+distStep = 0;
 
 function distCurveFit() {
-    radii = steps.map(point => point.x);
-    distance = steps.map(point => point.y);
+    radii = distSteps.map(point => point.x);
+    distance = distSteps.map(point => point.y);
     return fetch("/fitDist", {
         method: "POST",
         body: JSON.stringify({
@@ -40,25 +39,24 @@ function distOutput() {
 
         updateDistEquation(k, a);
 
-        distOutputGraph.src = graph;
+        distGraph.src = graph;
         calibrateDistLabel.innerHTML = "";
         measurements.style = "";
-        distOutputGraph.style.display = "block";
         
-        steps = [];
-        step = 0;
+        distSteps = [];
+        distStep = 0;
         updating = true;
     })
     .catch(error => {return 0;});
 }
 function calibrateDistNext() {
-    if (step === 0) {
+    if (distStep === 0) {
         calibrateDistStart.style.display = "none";
         calibrationDistFrame.style.display = "flex";
         measurements.style.display = "none";
         updating = false;
     } else {
-        let originalStep = step;
+        let originalStep = distStep;
         fetch("/radius", {
             method: "POST",
             headers: {
@@ -67,19 +65,19 @@ function calibrateDistNext() {
             })
             .then(response => response.json())
             .then(data => {
-                steps.push({x: data.radius, y: originalStep});
+                distSteps.push({x: data.radius, y: originalStep});
             })
             .catch(error => {return 0;});
     }
 
-    step += 10;
+    distStep += 10;
     
-    if (step > 60) {
+    if (distStep > 60) {
         calibrateDistStart.style = "";
         calibrationDistFrame.style = "";
         setTimeout("distOutput();", 500);
     } else
-        calibrateDistLabel.innerHTML = `Click the 'Next' button with the ball <b>${step}cm</b> away from the camera.`;
+        calibrateDistLabel.innerHTML = `Click the 'Next' button with the ball <b>${distStep}cm</b> away from the camera.`;
 }
 
 function updateDistEquation(_k, _a) {

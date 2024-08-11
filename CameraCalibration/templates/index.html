@@ -12,19 +12,25 @@
             <p id="update-label">Update Interval: </p>
             <input id="update-slider" type="range" min=100 max=1000 value=500 />
             <canvas id="preview" alt="Preview"></canvas>
-            <p id="colors">Selecting Colours: false</p>
-            <input id="color-select" onclick="colorSelect();" type="checkbox">
-            <button onclick="colorSelect()">Clear Colours</button>
-            <button onclick="calibrateColors()">Calibrate Colours</button>
+            <span style="display: flex;">
+                <input id="color-select" onclick="colorSelect();" type="checkbox">
+                <p id="colors">Selecting Colours: false</p>
+            </span>
+            <span>
+                <button onclick="colorSelect()">Clear Colours</button>
+                <button onclick="calibrateColors()">Calibrate Colours</button>
+            </span>
         </span>
     </div>
 
-    <div id="measurements" class="box">
-        <p id="detected-label">Detected: </p>
-        <p id="radius-label">Radius: </p>
-        <p id="distance-label">Estimated Distance: </p>
-        <p id="x-label">Estimated X: </p>
-        <p id="angle-label">Estimated Angle: </p>
+    <div id="measurements-frame" class="box">
+        <h2 id="detected-label">Detected: </h2>
+        <span id="measurements">
+            <p id="radius-label">Radius: </p>
+            <p id="distance-label">Estimated Distance: </p>
+            <p id="x-label">Estimated X: </p>
+            <p id="angle-label">Estimated Angle: </p>
+        </span>
         <p id="measure-label">Measure every 1s</p>
         <input id="measure-slider" type="range" min=100 max=1000 value=1000 />
     </div>
@@ -33,11 +39,11 @@
     <span class="calibration-frame">
         <div id="calibrate-dist-start" class="box">
             <button id="calibrate-dist-button" onclick="calibrateDistNext()">Calibrate Distance</button>
-            <img id="output-dist-graph" style="width:100%; max-width:50rem"></img>
         </div>
         
         <div class="box">
             <p id="equation-dist-label">Equation: </p>
+            <img id="dist-graph" src="{{url_for('static', filename='dist.png')}}">
         </div>
         
         <div id="calibration-dist" class="box">
@@ -49,11 +55,11 @@
     <span class="calibration-frame">
         <div id="calibrate-angle-start" class="box">
             <button id="calibrate-angle-button" onclick="calibrateAngleNext()">Calibrate Angle</button>
-            <img id="output-angle-graph" style="width:100%; max-width:50rem"></img>
         </div>
         
         <div class="box">
             <p id="equation-angle-label">Equation: </p>
+            <img id="angle-graph" src="{{url_for('static', filename='angle.png')}}">
         </div>
         
         <div id="calibration-angle" class="box">

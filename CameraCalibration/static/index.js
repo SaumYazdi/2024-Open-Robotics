@@ -88,7 +88,13 @@ function update() {
             .then(response => response.json())
             .then(data => {
                 radius = data.radius;
-                detectedLabel.innerHTML = `Detected: ${(radius !== null)}`
+                if (radius !== null) {
+                    detectedLabel.innerHTML = "Ball Detected";
+                    measurements.style.display = "flex";
+                } else {
+                    detectedLabel.innerHTML = "Ball Not Detected";
+                    measurements.style = "";
+                }
                 radiusLabel.innerHTML = `Radius: ${radius}`;
                 
                 distance = calcDist(radius);

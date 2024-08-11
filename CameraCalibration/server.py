@@ -114,6 +114,7 @@ class Server(Flask):
                 bbox={'facecolor': 'white', 'alpha': 0.7, 'edgecolor': 'gray'})
             img = BytesIO()
             plt.savefig(img, format="png")
+            plt.savefig(join(dirname(__file__), "static/angle.png"), format="png")
             img.seek(0)
             img_base64 = PNG_START + base64.b64encode(img.read()).decode("utf-8")
 
@@ -143,7 +144,7 @@ class Server(Flask):
                 f.close()
 
             x_fit = np.linspace(min(self.x_data), max(self.x_data), 137)
-            y_fit = self.func(x_fit, self.k, self.a)
+            y_fit = func(x_fit, self.k, self.a)
 
             plt.figure(figsize=(16, 12)) 
             plt.scatter(self.x_data, self.y_data, label="Data")
@@ -160,6 +161,7 @@ class Server(Flask):
                 bbox={'facecolor': 'white', 'alpha': 0.7, 'edgecolor': 'gray'})
             img = BytesIO()
             plt.savefig(img, format="png")
+            plt.savefig(join(dirname(__file__), "static/dist.png"), format="png")
             img.seek(0)
             img_base64 = PNG_START + base64.b64encode(img.read()).decode("utf-8")
 

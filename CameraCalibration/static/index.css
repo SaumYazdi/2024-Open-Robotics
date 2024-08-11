@@ -24,13 +24,15 @@ button {
     margin: 1rem;
     background: #303643;
     color: white;
+    border-radius: 0.5rem;
 }
 
-#calibration-dist, #calibration-angle, #preview-frame {
+#calibration-dist, #calibration-angle {
     display: none;
 }
 
-#preview-frame {
+#preview-frame, #measurements {
+    display: none;
     flex-direction: column;
 }
 
@@ -41,4 +43,9 @@ button {
 
 .calibration-frame {
     width: 50%;
+}
+
+#color-select {
+    width: 1.5rem;
+    margin: 0.5rem;
 }

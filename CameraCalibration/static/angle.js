@@ -1,19 +1,18 @@
 
 let angleEquationLabel = getE("equation-angle-label");
+let angleGraph = getE("angle-graph");
 
 let calibrateAngleStart = getE("calibrate-angle-start");
-let angleOutputGraph = getE("output-angle-graph");
-angleOutputGraph.style.display = "none";
 
 let calibrationAngleFrame = getE("calibration-angle");
 let calibrateAngleLabel = getE("calibrate-angle-label");
 
-steps = [];
-step = -40; // Initial x-offset is -30cm
+angleSteps = [];
+angleStep = -40; // Initial x-offset is -30cm
 
 function angleCurveFit() {
-    let xOffset = steps.map(point => point.x);
-    let trueX = steps.map(point => point.y);
+    let xOffset = angleSteps.map(point => point.x);
+    let trueX = angleSteps.map(point => point.y);
     return fetch("/fitAngle", {
         method: "POST",
         body: JSON.stringify({
@@ -44,25 +43,24 @@ function angleOutput() {
 
         updateAngleEquation(m, c);
 
-        angleOutputGraph.src = graph;
+        distGraph.src = graph;
         calibrateAngleLabel.innerHTML = "";
         measurements.style = "";
-        angleOutputGraph.style.display = "block";
         
-        steps = [];
-        step = -40;
+        angleSteps = [];
+        angleStep = -40;
         updating = true;
     })
     .catch(error => {return 0;});
 }
 function calibrateAngleNext() {
-    if (step === -40) {
+    if (angleStep === -40) {
         calibrateAngleStart.style.display = "none";
         calibrationAngleFrame.style.display = "flex";
         measurements.style.display = "none";
         updating = false;
     } else {
-        let originalStep = step;
+        let originalStep = angleStep;
         fetch("/xOffset", {
             method: "POST",
             headers: {
@@ -83,25 +81,25 @@ function calibrateAngleNext() {
                         radius = data.radius;
                         distance = calcDist(radius);
                         console.log(radius, distance);
-                        steps.push({x: x / distance, y: originalStep});
+                        angleSteps.push({x: x / distance, y: originalStep});
                     })
                     .catch(error => {return 0;});
             })
             .catch(error => {return 0;});
     }
 
-    step += 10;
+    angleStep += 10;
     
-    if (step > 30) {
+    if (angleStep > 30) {
         calibrateAngleStart.style = "";
         calibrationAngleFrame.style = "";
         setTimeout("angleOutput();", 500);
     } else {
-            if (step == 0)
+            if (angleStep == 0)
                 calibrateAngleLabel.innerHTML = `Click the 'Next' button with the ball in front of the camera.`;
             else {
-                let dir = step < 0 ? "left" : "right";
-                calibrateAngleLabel.innerHTML = `Click the 'Next' button with the ball <b>${Math.abs(step)}cm</b> ${dir} from the camera.`;
+                let dir = angleStep < 0 ? "left" : "right";
+                calibrateAngleLabel.innerHTML = `Click the 'Next' button with the ball <b>${Math.abs(angleStep)}cm</b> ${dir} from the camera.`;
         }
     }
 }
