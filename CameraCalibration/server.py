@@ -38,6 +38,7 @@ class Server(Flask):
         
         self.radius = None
         self.x_offset = None
+        self.fps = None
         
         # Calibration parameters
         self.a = self.k = None
@@ -66,6 +67,10 @@ class Server(Flask):
                 f.close()
             return render_template("index.html", a=dist["a"], k=dist["k"], m=angle["m"], c=angle["c"])
             
+        @self.route("/fps", methods=["POST"])
+        def fps():
+            return jsonify({"fps": self.fps})
+ 
         @self.route("/radius", methods=["POST"])
         def radius():
             return jsonify({"radius": self.radius})

@@ -10,6 +10,8 @@ function round(value, digits) {
 // Initialise HTML Elements
 let measurementsFrame = getE("measurements-frame");
 let measurements = getE("measurements");
+
+let fpsLabel = getE("fps");
 let previewStream = getE("preview-stream");
 let previewFrame = getE("preview-frame");
 let preview = getE("preview");
@@ -36,6 +38,8 @@ var radius = 0;
 var distance = 0;
 var estimatedX = 0;
 var angle = 0;
+
+var fps = 0;
 
 // Parameters
 var k, a;
@@ -111,24 +115,21 @@ function update() {
                 angleLabel.innerHTML = `Estimated Angle: ${(angle * 180) / Math.PI}`;
             })
             .catch(error => {return 0;});
+            
+        // Retrive system FPS.
+        fetch("/fps", {
+            method: "POST",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+            })
+            .then(response => response.json())
+            .then(data => {
+                fps = data.fps;
+                fpsLabel.innerHTML = `${fps} FPS`;
+            })
+            .catch(error => {return 0;});
     }
-    
-    // if (visible && (ticks % Math.round(UPDATE_INTERVAL / 100) == 0)) {
-    //     // Retrieve camera image
-    //     if (!colorSwitch.checked) {
-    //         fetch("/preview" , {
-    //             method: "POST",
-    //             headers: {
-    //                 "Content-type": "application/json; charset=UTF-8"
-    //             }
-    //             })
-    //             .then(response => response.json())
-    //             .then(data => {
-    //                 setPreview(data.preview);
-    //             })
-    //             .catch(error => {return 0;});
-    //     }
-    // }
 
     ticks++;
 
