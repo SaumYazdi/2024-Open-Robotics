@@ -17,6 +17,10 @@
         <p id="detected-label">Detected: </p>
         <p id="radius-label">Radius: </p>
         <p id="distance-label">Estimated Distance: </p>
+        <p id="x-label">Estimated X: </p>
+        <p id="angle-label">Estimated Angle: </p>
+        <p id="measure-label">Measure every 1s</p>
+        <input id="measure-slider" type="range" min=100 max=1000 value=1000 />
     </div>
     
     <div class="calibration-frames">
@@ -58,5 +62,6 @@
     <script type="text/javascript" src="{{url_for('static', filename='angle.js')}}"></script>
     <script type="text/javascript">
         updateDistEquation("{{k}}", "{{a}}");
+        updateAngleEquation("{{m}}", "{{c}}");
     </script>
 </body>

@@ -8,9 +8,6 @@ distOutputGraph.style.display = "none";
 let calibrationDistFrame = getE("calibration-dist");
 let calibrateDistLabel = getE("calibrate-dist-label");
 
-var k, a;
-var radius = 0;
-
 steps = [];
 step = 0;
 
@@ -38,8 +35,8 @@ function distOutput() {
     response = distCurveFit();
     response.then(responseData => {
         let graph = responseData.graph;
-        a = responseData.a, k = responseData.k;
-        let equation = `${round(k, 2)}x^${round(a, 2)}`;
+        a = responseData.a;
+        k = responseData.k;
 
         updateDistEquation(k, a);
 
@@ -86,9 +83,9 @@ function calibrateDistNext() {
 }
 
 function updateDistEquation(_k, _a) {
+    k = _k;
+    a = _a;
     _k = round(_k, 2);
     _a = round(_a, 2);
     distEquationLabel.innerHTML = `Equation: ${_k}x^${_a}`;
-    k = _k;
-    a = _a;
 }

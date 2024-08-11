@@ -8,20 +8,17 @@ angleOutputGraph.style.display = "none";
 let calibrationAngleFrame = getE("calibration-angle");
 let calibrateAngleLabel = getE("calibrate-angle-label");
 
-var k, a;
-var radius = 0;
-
 steps = [];
-step = 0;
+step = -40; // Initial x-offset is -30cm
 
 function angleCurveFit() {
-    radii = steps.map(point => point.x);
-    angle = steps.map(point => point.y);
+    let xOffset = steps.map(point => point.x);
+    let trueX = steps.map(point => point.y);
     return fetch("/fitAngle", {
         method: "POST",
         body: JSON.stringify({
-            radii: radii,
-            angle: angle
+            x: xOffset,
+            trueX: trueX
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -30,18 +27,22 @@ function angleCurveFit() {
         .then(response => response.json())
 }
 
-function calcAngle(radius) {
-    return k * Math.pow(radius, a);
+function calcX(xOffset) {
+    return parseFloat(m * (xOffset / distance)) + parseFloat(c);
+}
+
+function calcAngle(x) {
+    return Math.atan2(x, distance);
 }
 
 function angleOutput() {
     response = angleCurveFit();
     response.then(responseData => {
         let graph = responseData.graph;
-        a = responseData.a, k = responseData.k;
-        let equation = `${round(k, 2)}x^${round(a, 2)}`;
+        m = responseData.m;
+        c = responseData.c;
 
-        updateAngleEquation(k, a);
+        updateAngleEquation(m, c);
 
         angleOutputGraph.src = graph;
         calibrateAngleLabel.innerHTML = "";
@@ -49,20 +50,20 @@ function angleOutput() {
         angleOutputGraph.style.display = "block";
         
         steps = [];
-        step = 0;
+        step = -40;
         updating = true;
     })
     .catch(error => {return 0;});
 }
 function calibrateAngleNext() {
-    if (step === 0) {
+    if (step === -40) {
         calibrateAngleStart.style.display = "none";
         calibrationAngleFrame.style.display = "flex";
         measurements.style.display = "none";
         updating = false;
     } else {
         let originalStep = step;
-        fetch("/radius", {
+        fetch("/xOffset", {
             method: "POST",
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
@@ -70,25 +71,45 @@ function calibrateAngleNext() {
             })
             .then(response => response.json())
             .then(data => {
-                steps.push({x: data.radius, y: originalStep});
+                let x = data.xOffset;
+                fetch("/radius", {
+                    method: "POST",
+                    headers: {
+                        "Content-type": "application/json; charset=UTF-8"
+                    }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        radius = data.radius;
+                        distance = calcDist(radius);
+                        console.log(radius, distance);
+                        steps.push({x: x / distance, y: originalStep});
+                    })
+                    .catch(error => {return 0;});
             })
             .catch(error => {return 0;});
     }
 
     step += 10;
     
-    if (step > 60) {
+    if (step > 30) {
         calibrateAngleStart.style = "";
         calibrationAngleFrame.style = "";
         setTimeout("angleOutput();", 500);
-    } else
-        calibrateAngleLabel.innerHTML = `Click the 'Next' button with the ball <b>${step}cm</b> away from the camera.`;
+    } else {
+            if (step == 0)
+                calibrateAngleLabel.innerHTML = `Click the 'Next' button with the ball in front of the camera.`;
+            else {
+                let dir = step < 0 ? "left" : "right";
+                calibrateAngleLabel.innerHTML = `Click the 'Next' button with the ball <b>${Math.abs(step)}cm</b> ${dir} from the camera.`;
+        }
+    }
 }
 
-function updateAngleEquation(_k, _a) {
-    _k = round(_k, 2);
-    _a = round(_a, 2);
-    angleEquationLabel.innerHTML = `Equation: ${_k}x^${_a}`;
-    k = _k;
-    a = _a;
+function updateAngleEquation(_m, _c) {
+    m = _m;
+    c = _c;
+    _m = round(_m, 2);
+    _c = round(_c, 2);
+    angleEquationLabel.innerHTML = `Equation: ${_m}x + ${_c}`;
 }
