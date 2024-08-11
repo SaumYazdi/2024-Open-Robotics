@@ -72,7 +72,7 @@ class Camera:
         mask = self.get_mask(frame)
         # find contours in the mask and initialize the current
         # (x, y) center of the ball
-        contours = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+        contours = cv2.findContours(mask, cv2.RETR_EXTERNAL,
             cv2.CHAIN_APPROX_SIMPLE)
         contours = imutils.grab_contours(contours)
         center = None
@@ -88,8 +88,9 @@ class Camera:
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
             
             if radius > 10:
-                cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-                cv2.circle(frame, center, 2, BALL_TRACK_COLOUR, -1)
+                if self.draw_detections:
+                    cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+                    cv2.circle(frame, center, 2, BALL_TRACK_COLOUR, -1)
 
                 if self.pos is None:
                     self.pos = pos
