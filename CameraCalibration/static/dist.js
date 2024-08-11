@@ -41,7 +41,7 @@ function distOutput() {
 
         distGraph.src = graph;
         calibrateDistLabel.innerHTML = "";
-        measurements.style = "";
+        measurementsFrame.style = "";
         
         distSteps = [];
         distStep = 0;
@@ -53,7 +53,7 @@ function calibrateDistNext() {
     if (distStep === 0) {
         calibrateDistStart.style.display = "none";
         calibrationDistFrame.style.display = "flex";
-        measurements.style.display = "none";
+        measurementsFrame.style.display = "none";
         updating = false;
     } else {
         let originalStep = distStep;

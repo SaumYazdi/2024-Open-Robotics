@@ -43,9 +43,9 @@ function angleOutput() {
 
         updateAngleEquation(m, c);
 
-        distGraph.src = graph;
+        angleGraph.src = graph;
         calibrateAngleLabel.innerHTML = "";
-        measurements.style = "";
+        measurementsFrame.style = "";
         
         angleSteps = [];
         angleStep = -40;
@@ -57,7 +57,7 @@ function calibrateAngleNext() {
     if (angleStep === -40) {
         calibrateAngleStart.style.display = "none";
         calibrationAngleFrame.style.display = "flex";
-        measurements.style.display = "none";
+        measurementsFrame.style.display = "none";
         updating = false;
     } else {
         let originalStep = angleStep;

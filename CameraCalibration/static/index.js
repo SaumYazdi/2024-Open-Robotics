@@ -1,5 +1,3 @@
-
-
 function getE(id) {
     return document.getElementById(id);
 }
@@ -10,10 +8,8 @@ function round(value, digits) {
 }
 
 // Initialise HTML Elements
+let measurementsFrame = getE("measurements-frame");
 let measurements = getE("measurements");
-let updateLabel = getE("update-label");
-let updateSlider = getE("update-slider");
-
 let previewStream = getE("preview-stream");
 let previewFrame = getE("preview-frame");
 let preview = getE("preview");
@@ -27,13 +23,6 @@ let angleLabel = getE("angle-label");
 
 let measureLabel = getE("measure-label");
 let measureSlider = getE("measure-slider");
-
-UPDATE_INTERVAL = updateSlider.value;
-updateLabel.innerHTML = `Update Interval: ${round(UPDATE_INTERVAL * .001, 3)}s`;
-updateSlider.addEventListener("input", () => {
-    UPDATE_INTERVAL = updateSlider.value;
-    updateLabel.innerHTML = `Update Interval: ${round(UPDATE_INTERVAL * .001, 3)}s`;
-});
 
 MEASURE_INTERVAL = measureSlider.value;
 measureLabel.innerHTML = `Measure every ${round(MEASURE_INTERVAL * .001, 3)}s`;

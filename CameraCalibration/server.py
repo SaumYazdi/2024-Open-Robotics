@@ -5,11 +5,15 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 
 from flask import Flask, render_template, jsonify, request, Response
+import logging
+
 from os.path import join, dirname
 import base64
 import cv2
 import json
 import colorsys
+
+DEBUG = False
 
 PNG_START = "data:image/png;base64,"
 save_path = join(dirname(__file__), "save.json")
@@ -48,16 +52,6 @@ class Server(Flask):
                 image = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_bytes + b'\r\n')
                 yield image
 
-    def gen_radius(self):
-        """
-        Video Stream
-        """
-        while True:
-            if self.radius is not None:
-                # image = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_bytes + b'\r\n')
-                text = str(self.radius).encode("utf-8") + b'\r\n'
-                yield text
-
     def _define_routes(self):
         @self.route("/")
         def index():
@@ -68,10 +62,9 @@ class Server(Flask):
                 f.close()
             return render_template("index.html", a=dist["a"], k=dist["k"], m=angle["m"], c=angle["c"])
             
-        @self.route("/radius")
+        @self.route("/radius", methods=["POST"])
         def radius():
-            # return jsonify({"radius": self.radius})
-            return Response(self.gen_radius(), mimetype='text/plain')
+            return jsonify({"radius": self.radius})
  
         @self.route("/xOffset", methods=["POST"])
         def x_offset():
@@ -215,4 +208,10 @@ class Server(Flask):
         # Agg is a non-interactive backend.
         # Prevents the error when initialising a MPL figure.
         mpluse("agg")
+        
+        # Disable console messages
+        if DEBUG == False:
+            log = logging.getLogger('werkzeug')
+            log.setLevel(logging.ERROR)
+            
         self.run(port=8080, host="0.0.0.0")
