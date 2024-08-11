@@ -8,6 +8,7 @@ from time import perf_counter
 from typing import Callable
 from classes import *
 from math import atan2, degrees
+
 try:
     from picamera2 import Picamera2
     DEVICE = "pi"
@@ -44,10 +45,6 @@ with open(save_path, "r") as f:
     color = data["color"]
     f.close()
     
-ORANGE_LOWER = color["lower"]
-ORANGE_UPPER = color["upper"]
-print(ORANGE_LOWER, ORANGE_UPPER)
-
 def get_dist(radius):
     return dist["k"] * pow(radius, dist["a"])
 
@@ -83,14 +80,20 @@ class Camera:
         self.color_mask = None
 
         self.update_events = []
-            
+        
+        self.set_color_bounds(color["lower"], color["upper"])
+        
+    def set_color_bounds(self, lower, upper):
+        self.orange_lower = tuple(lower)
+        self.orange_upper = tuple(upper)
+    
     def get_mask(self, frame):
         blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         
         self.color_mask = hsv.copy()
         
-        mask = cv2.inRange(hsv, ORANGE_LOWER, ORANGE_UPPER)
+        mask = cv2.inRange(hsv, self.orange_lower, self.orange_upper)
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
         

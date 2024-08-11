@@ -11,6 +11,10 @@ def update():
     else:
         server.x_offset = None
     server.radius = camera.radius
+    if server.lower and server.upper:
+        camera.set_color_bounds(server.lower, server.upper)
+        server.lower = server.upper = None
+        
     if server.show_preview:
         server.preview = camera.image.copy()
 

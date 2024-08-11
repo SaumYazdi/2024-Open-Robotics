@@ -9,10 +9,16 @@ from os.path import join, dirname
 import base64
 import cv2
 import json
+import colorsys
 
 PNG_START = "data:image/png;base64,"
 save_path = join(dirname(__file__), "save.json")
 
+def rgb_to_hsv(rgb) -> tuple:
+    normal_rgb = [i / 255 for i in rgb]
+    normal_hsv = colorsys.rgb_to_hsv(*normal_rgb)
+    return (round(360 * normal_hsv[0]), round(255 * normal_hsv[1]), round(255 * normal_hsv[2]))
+    
 class Server(Flask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,6 +34,7 @@ class Server(Flask):
         # Calibration parameters
         self.a = self.k = None
         self.m = self.c = None
+        self.lower = self.upper = None
 
     def _define_routes(self):
         @self.route("/")
@@ -165,17 +172,14 @@ class Server(Flask):
             lower = [255, 255, 255]
             upper = [0, 0, 0]
             for color in colors:
-                color = [int(x) for x in color[1:-1].split(", ")]
+                # Convert from RGB to HSV
+                color = rgb_to_hsv([int(x) for x in color[1:-1].split(", ")])
                 for i in range(3):
                     if color[i] < lower[i]:
                         lower[i] = color[i]
                     if color[i] > upper[i]:
                         upper[i] = color[i]
-                        
-            # Convert from RGB to BGR
-            lower = lower[::-1]
-            upper = upper[::-1]
-            
+                    
             # Save to save.json
             with open(save_path, "r") as f:
                 data = json.load(f)
@@ -184,7 +188,10 @@ class Server(Flask):
             with open(save_path, "w") as f:
                 json.dump(data, f, sort_keys=True, indent=4)
                 f.close()
-                        
+                
+            self.lower = lower
+            self.upper = upper
+            
             return jsonify({})
 
     def start(self):
