@@ -54,7 +54,8 @@ def get_angle(x, distance):
 class Camera:
     def __init__(self, window_name: str,
             preview: bool = False, draw_detections: bool = False):
-        self.points = deque(maxlen=BUFFER_SIZE)
+                
+        # self.points = deque(maxlen=BUFFER_SIZE)
         
         if DEVICE == "pi":
             self.video_stream = Picamera2()
@@ -74,12 +75,15 @@ class Camera:
         self.dist = None
 
         self.image = None
+        self.color_mask = None
 
         self.update_events = []
             
     def get_mask(self, frame):
         blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+        
+        self.color_mask = hsv.copy()
         
         mask = cv2.inRange(hsv, ORANGE_LOWER, ORANGE_UPPER)
         mask = cv2.erode(mask, None, iterations=2)
@@ -135,7 +139,7 @@ class Camera:
             self.radius = None
             self.dist = None
 
-        self.points.appendleft(self.pos.int() if self.pos else None)
+        # self.points.appendleft(self.pos.int() if self.pos else None)
         
     def read(self):
         if DEVICE == "pc":
@@ -149,7 +153,8 @@ class Camera:
             return
         
         # Important or detection will break!
-        frame = imutils.resize(frame, width=600)
+        # Resize to detection resolution
+        frame = imutils.resize(frame, width=480)
         self.compute(frame)
 
         if self.draw_detections:

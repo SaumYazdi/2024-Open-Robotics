@@ -9,9 +9,11 @@ function round(value, digits) {
     return Math.round(value * mult) / mult;
 }
 
+// Initialise HTML Elements
 let measurements = getE("measurements");
 let updateLabel = getE("update-label");
 let updateSlider = getE("update-slider");
+
 let preview = getE("preview");
 let previewButton = getE("preview-button");
 
@@ -71,6 +73,53 @@ function showPreview() {
     }
 }
 
+function extractPixelColor(data, cols, x, y) {
+    let pixel = cols * parseInt(x) + parseInt(y);
+    let position = pixel * 4;
+    return {
+        red: data[position],
+        green: data[position + 1],
+        blue: data[position + 2],
+        alpha: data[position + 3],
+    };
+};
+
+var pixelColor = null;
+function setPreview(src) {
+    if (visible == false)
+        return null;
+        
+    let img = new window.Image();
+    img.crossOrigin = `Anonymous`;
+    
+    img.src = src;
+    img.onload = function() {
+    
+        preview.width = img.width;
+        preview.height = img.height;
+        
+        let ctx = preview.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        
+        let data = ctx.getImageData(0, 0, preview.width, preview.height).data;
+        preview.addEventListener("mousemove", (event) => {
+            let cols = preview.width;
+            let rect = preview.getBoundingClientRect();
+            let scaleX = preview.width / rect.width;
+            let scaleY = preview.height / rect.height;
+            let x = (event.clientX - rect.left) * scaleX;
+            let y = (event.clientY - rect.top) * scaleY;
+            console.log(x, y, cols);
+            
+            let c = extractPixelColor(data, cols, y, x);
+            pixelColor = `rgb(${c.red}, ${c.green}, ${c.blue})`;
+            ctx.fillStyle = pixelColor;
+            ctx.fillRect(x, y, 20, 20);
+        });
+    
+    };
+}
+
 ticks = 0;
 function update() {
     if (updating && (ticks % Math.round(MEASURE_INTERVAL / 100) == 0)) {
@@ -119,7 +168,7 @@ function update() {
             })
             .then(response => response.json())
             .then(data => {
-                preview.src = data.preview;
+                setPreview(data.preview);
             })
             .catch(error => {return 0;});
     }
