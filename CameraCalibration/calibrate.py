@@ -1,12 +1,11 @@
 """
-Testing interface
-Run this file 'main.py' and access the control panel at <ipv4-address>:8080
+Calibration control panel.
+Run this file 'calibrate.py' and access the control panel at <ipv4-address>:8080
 """
 
 from threading import Thread
 from camera import Camera
 from server import Server
-from robot import Robot
 
 def update():
     """
@@ -26,15 +25,13 @@ def update():
         server.preview = camera.image.copy()
 
 if __name__ == "__main__":
-    camera = Camera("Soccer Robot", preview=False, draw_detections=True)
+    camera = Camera("Ball Detector", preview=False, draw_detections=True)
     camera.set_update(update)
     server = Server(__name__)
-    
-    robot = Robot(camera)
 
     threads = [
         Thread(target=server.start),
-        Thread(target=robot.start),
+        Thread(target=camera.start),
     ]
 
     for thread in threads:

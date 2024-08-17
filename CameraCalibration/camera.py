@@ -17,11 +17,12 @@ from math import atan2, degrees
 
 try:
     from picamera2 import Picamera2
-    from libcamera import controls
     DEVICE = "pi"
 except ImportError:
     from imutils.video import VideoStream
     DEVICE = "pc"
+print(f"Running camera on {('PC', 'Raspberry Pi')[int(DEVICE == 'pi')]}")
+    
 
 RESIZE_WIDTH = 640
 BUFFER_SIZE = 64
