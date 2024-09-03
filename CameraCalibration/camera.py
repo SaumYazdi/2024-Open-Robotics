@@ -92,15 +92,29 @@ CAMERA CONTROLS
 'ExposureValue': (-8.0, 8.0, 0.0), 'Sharpness': (0.0, 16.0, 1.0)}
 """
 
+"""
+220 degree camera sensor modes
+`Picamera2().sensor_modes`
+"""
+CAMERA_SENSOR_MODES = [
+    {'format': 'SGBRG10_CSI2P', 'unpacked': 'SGBRG10', 'bit_depth': 10, 'size': (640, 480), 'fps': 58.92, 'crop_limits': (16, 0, 2560, 1920), 'exposure_limits': (134, 1103219, None)},
+    {'format': 'SGBRG10_CSI2P', 'unpacked': 'SGBRG10', 'bit_depth': 10, 'size': (1296, 972), 'fps': 43.25, 'crop_limits': (0, 0, 2592, 1944), 'exposure_limits': (92, 760636, None)},
+    {'format': 'SGBRG10_CSI2P', 'unpacked': 'SGBRG10', 'bit_depth': 10, 'size': (1920, 1080), 'fps': 30.62, 'crop_limits': (348, 434, 1928, 1080), 'exposure_limits': (118, 969249, None)},
+    {'format': 'SGBRG10_CSI2P', 'unpacked': 'SGBRG10', 'bit_depth': 10, 'size': (2592, 1944), 'fps': 15.63, 'crop_limits': (0, 0, 2592, 1944), 'exposure_limits': (130, 1064891, None)}
+]
+
+CAMERA_WIDTH, CAMERA_HEIGHT = 648, 486
+
 class Camera:
     def __init__(self, window_name: str,
             preview: bool = False, draw_detections: bool = False):
                 
         if DEVICE == "pi":
             self.video_stream = Picamera2()
-            raw_config = self.video_stream.sensor_modes[5]
+            raw_config = CAMERA_SENSOR_MODES[1]
+            raw_config["fps"] = 144
             config = self.video_stream.create_video_configuration(
-                main={"format": 'XRGB8888', "size": [640//2, 480//2]},
+                main={"format": 'XRGB8888', "size": [CAMERA_WIDTH//2, CAMERA_HEIGHT//2]},
                 raw=raw_config,
                 buffer_count=2,
                 controls={'FrameRate': 144},
@@ -305,5 +319,5 @@ class Camera:
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    camera = Camera("Ball Detector")
+    camera = Camera("Ball Detector", True, True)
     camera.start()
