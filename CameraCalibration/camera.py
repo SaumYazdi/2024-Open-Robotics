@@ -262,16 +262,16 @@ class Camera:
         if DEVICE == "pi":
             self.video_stream.start()
             
-        sleep(delay)
-        
-        count = 10
-        start = perf_counter()
-        for i in range(0,count) :
-            request = self.video_stream.capture_request()
-            metadata = request.get_metadata()
-            request.release()
-        fps = float(count/(perf_counter() - start))
-        print("Metadata only", " Spf:", 1./fps, " Fps:", fps)
+            sleep(delay)
+            
+            count = 10
+            start = perf_counter()
+            for i in range(0,count) :
+                request = self.video_stream.capture_request()
+                metadata = request.get_metadata()
+                request.release()
+            fps = float(count/(perf_counter() - start))
+            print("Metadata only", " Spf:", 1./fps, " Fps:", fps)
         
         ticks = 1
         prev = perf_counter()
