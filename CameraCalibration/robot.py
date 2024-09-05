@@ -5,6 +5,7 @@ Main camera systems which will parse the ball location data to the main
 from camera import Camera
 from math import degrees
 import serial
+import struct
 
 RECEIVER = "/dev/ttyACM0" # Work out the name for PICO
 BAUD_RATE = 9600
@@ -24,20 +25,20 @@ class Robot:
     
     def update(self):
         """System update loop. Updates the ball's distance and angle variables."""
-        self.distance = camera.get_distance()
-        self.angle = camera.get_angle()
+        self.distance = self.camera.get_distance()
+        self.angle = self.camera.get_angle()
         
-        # self.send("test")
-        # print(f"Distance: {str(self.distance): <16} Angle: {str(self.angle): <16}")
+        if self.distance and self.angle:
+            self.send(self.distance, self.angle)
+        print(f"Distance: {str(self.distance): <16} Angle: {str(self.angle): <16}")
         
-    def send(self, value: str | bytes):
+    def send(self, dist, angle):
         """
         Send serial data to the main controller.
         """
-        if type(value) == str:
-            value = value.encode("utf-8")
+        send_data = struct.pack('f', dist) + struct.pack('f', angle)
             
-        self.ser.write(value + b'\n')
+        self.ser.write(send_data)
     
     def start(self):
         """
