@@ -41,6 +41,10 @@ function calibrateColors() {
             "Content-type": "application/json; charset=UTF-8"
         }
     })
+    .then(response => response.json())
+    .then(data => {
+        getColors();
+    })
     .catch(error => {return 0;});
     
     colorSwitch.checked = false;
@@ -96,3 +100,97 @@ preview.addEventListener("click", () => {
     colorsLabel.innerHTML = `Selecting Colours: true, Colors: ${selectedColors.join(', ')}`;   
 });
       
+
+
+// Color calibration
+
+colorLower = {
+    r: getE("color-lower-r"),
+    g: getE("color-lower-g"),
+    b: getE("color-lower-b")
+}
+
+colorUpper = {
+    r: getE("color-upper-r"),
+    g: getE("color-upper-g"),
+    b: getE("color-upper-b")
+}
+
+colorLowerBox = getE("color-lower-box");
+colorUpperBox = getE("color-upper-box");
+
+function getColors() {
+    fetch("/colors", {
+        method: "POST",
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+        })
+        .then(response => response.json())
+        .then(data => {
+            lower = data.lower;
+            colorLower.r.value = lower[0];
+            colorLower.g.value = lower[1];
+            colorLower.b.value = lower[2];
+            upper = data.upper;
+            colorUpper.r.value = upper[0];
+            colorUpper.g.value = upper[1];
+            colorUpper.b.value = upper[2];
+            updateColor(false);
+        })
+        .catch(error => {return 0;});
+}
+
+window.addEventListener("load", () => {
+    getColors();
+});
+
+function HSVtoRGB(h, s, v) {
+    var r, g, b, i, f, p, q, t;
+    if (arguments.length === 1) {
+        s = h.s, v = h.v, h = h.h;
+    }
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+}
+
+function updateColor(setting = true) {
+    lower = [colorLower.r.value, colorLower.g.value, colorLower.b.value];
+    upper = [colorUpper.r.value, colorUpper.g.value, colorUpper.b.value];
+    
+    if (setting) {
+        fetch("/setColors", {
+            method: "POST",
+            body: JSON.stringify({
+                lower: lower,
+                upper: upper
+            }),
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+            })
+            .then(response => response.json())
+            .catch(error => {return 0;});
+    }
+    
+    l = HSVtoRGB(lower[0] / 360, lower[1] / 255, lower[2] / 255)
+    colorLowerBox.style.backgroundColor = `rgb(${l.r}, ${l.g}, ${l.b})`;
+    u = HSVtoRGB(upper[0] / 360, upper[1] / 255, upper[2] / 255)
+    colorUpperBox.style.backgroundColor = `rgb(${u.r}, ${u.g}, ${u.b})`;
+}

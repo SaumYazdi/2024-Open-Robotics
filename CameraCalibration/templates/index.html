@@ -7,11 +7,12 @@
     <span class="main-body">
         <h1>Robot Calibration</h1>
         
+        <div>
+            <a href="{{ url_for('preview') }}" target="_self">Link to Video Feed</a>
+            <script src="{{ url_for('static', filename='client.js') }}"></script>
+        </div>
+        
         <div class="box">
-            <video id="remoteVideo" autoplay></video>
-            <a href="{{ url_for('video_feed') }}" target="_self">Link to Video Feed</a>
-            <script src="{{ url_for('static', filename='main.js') }}"></script>
-            
             <button id="preview-button" onclick="showPreview()">Show Preview</button>
             <span id="preview-frame">
                 <p id="fps">0 FPS</p>
@@ -31,10 +32,9 @@
         <div id="measurements-frame" class="box">
             <h2 id="detected-label">Detected: </h2>
             <span id="measurements">
-                <p id="radius-label">Radius: </p>
                 <p id="distance-label">Estimated Distance: </p>
-                <p id="x-label">Estimated X: </p>
                 <p id="angle-label">Estimated Angle: </p>
+                <p id="radius-label">Radius: </p>
             </span>
             <p id="measure-label">Measure every 1s</p>
             <input id="measure-slider" type="range" min=100 max=1000 value=1000 />
@@ -56,20 +56,24 @@
                 <p id="calibrate-dist-label"></p>
             </div>
         </span>
-
+        
         <span class="calibration-frame">
-            <div id="calibrate-angle-start" class="box">
-                <button id="calibrate-angle-button" onclick="calibrateAngleNext()">Calibrate Angle</button>
+            <h1>Color Calibration</h1>
+            <h2>Lower Bound</h2>
+            <div id="color-lower">
+                <input id="color-lower-r" class="color-text" type="text" onchange="updateColor()" />
+                <input id="color-lower-g" class="color-text" type="text" onchange="updateColor()" />
+                <input id="color-lower-b" class="color-text" type="text" onchange="updateColor()" />
             </div>
-            
-            <div class="box">
-                <p id="equation-angle-label">Equation: </p>
-                <img id="angle-graph" src="{{url_for('static', filename='angle.png')}}">
+            <h2>Upper Bound</h2>
+            <div id="color-upper">
+                <input id="color-upper-r" class="color-text" type="text" onchange="updateColor()" />
+                <input id="color-upper-g" class="color-text" type="text" onchange="updateColor()" />
+                <input id="color-upper-b" class="color-text" type="text" onchange="updateColor()" />
             </div>
-            
-            <div id="calibration-angle" class="box">
-                <button onclick="calibrateAngleNext()">Next</button>
-                <p id="calibrate-angle-label"></p>
+            <div>
+                <div id="color-lower-box" class="color-box"></div>
+                <div id="color-upper-box" class="color-box"></div>
             </div>
         </span>
         </div>
@@ -77,10 +81,8 @@
 
     <script type="text/javascript" src="{{url_for('static', filename='index.js')}}"></script>
     <script type="text/javascript" src="{{url_for('static', filename='dist.js')}}"></script>
-    <script type="text/javascript" src="{{url_for('static', filename='angle.js')}}"></script>
     <script type="text/javascript" src="{{url_for('static', filename='color.js')}}"></script>
     <script type="text/javascript">
         updateDistEquation("{{k}}", "{{a}}");
-        updateAngleEquation("{{m}}", "{{c}}");
     </script>
 </body>

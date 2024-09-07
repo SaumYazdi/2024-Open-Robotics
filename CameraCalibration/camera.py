@@ -15,6 +15,7 @@ from typing import Callable
 from classes import *
 from math import atan2, degrees, sqrt
 import numpy
+import colorsys
 
 # try:
 from picamera2 import Picamera2
@@ -107,6 +108,11 @@ CAMERA_SENSOR_MODES = [
 
 CAMERA_WIDTH, CAMERA_HEIGHT = 2592, 1944
 
+def rgb_to_hsv(rgb) -> tuple:
+    normal_rgb = [i / 255 for i in rgb]
+    normal_hsv = colorsys.rgb_to_hsv(*normal_rgb)
+    return (round(360 * normal_hsv[0]), round(255 * normal_hsv[1]), round(255 * normal_hsv[2]))
+    
 class Camera:
     def __init__(self, window_name: str,
             preview: bool = False, draw_detections: bool = False):
@@ -153,14 +159,20 @@ class Camera:
     def set_color_bounds(self, lower, upper):
         self.orange_lower = tuple(lower)
         self.orange_upper = tuple(upper)
+        self.hsv_lower = (lower[0] / 2, lower[1], lower[2])
+        self.hsv_upper = (upper[0] / 2, upper[1], upper[2])
+        # hsv = rgb_to_hsv(self.orange_lower[::-1])
+        # self.hsv_lower = (hsv[0] * 179 / 360, hsv[1], hsv[2])
+        # hsv = rgb_to_hsv(self.orange_upper[::-1])
+        # self.hsv_upper = (hsv[0] * 179 / 360, hsv[1], hsv[2])
     
     def get_mask(self, frame):
         blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         
-        self.color_mask = hsv.copy()
-        
-        mask = cv2.inRange(hsv, self.orange_lower, self.orange_upper)
+        # cv2.rectangle(hsv, (0, 0, 50, 50), self.hsv_lower, -1)
+        # cv2.imshow("hsv", hsv)
+        mask = cv2.inRange(hsv, self.hsv_lower, self.hsv_upper)
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
         
@@ -216,33 +228,33 @@ class Camera:
             # c = max(contours, key=cv2.contourArea)
             if len(points) > 4:
                 c = cv2.convexHull(numpy.array(points, dtype=numpy.int32))
-            
-                ellipse = cv2.fitEllipse(c)
-                center, size, angle = ellipse
-                
-                # Not actually radius, i just cbf changing the variable name
-                self.radius = size[0] * size[1] # cv2.contourArea(c)
-                self.distance = get_dist(self.radius)
-                scale = size[0] * .006
-                self.pos = Vector(center)
-                delta_pos = self.pos.x - self.camera_center[0], self.pos.y - self.camera_center[1]
-                self.angle = -atan2(delta_pos[1], delta_pos[0])
-                # self.angle = degrees(self.angle) # RADIANS TO DEGREES
-                self.radial_distance = sqrt(delta_pos[0]**2 + delta_pos[1]**2)
-                
-                if self.draw_detections:
-                    for i in range(len(contours)):
-                        cv2.drawContours(frame, contours, i, (0, 255, 0))
-                    cv2.ellipse(frame, ellipse, (255, 255, 255), 1, cv2.LINE_AA)
-                    cv2.drawMarker(frame, [int(center[0]), int(center[1])], (0, 255, 0))
+                if c.size > 4:
+                    ellipse = cv2.fitEllipse(c)
+                    center, size, angle = ellipse
                     
-                    cv2.drawMarker(frame, self.camera_center, (0, 255, 0))
+                    # Not actually radius, i just cbf changing the variable name
+                    self.pos = Vector(center)
+                    delta_pos = self.pos.x - self.camera_center[0], self.pos.y - self.camera_center[1]
+                    self.angle = -atan2(delta_pos[1], delta_pos[0])
+                    # self.angle = degrees(self.angle) # RADIANS TO DEGREES
+                    self.radial_distance = sqrt(delta_pos[0]**2 + delta_pos[1]**2)
+                    self.radius = size[0] * size[1] # cv2.contourArea(c)
+                    self.distance = get_dist(self.radius * self.radial_distance)
+                    scale = size[0] * .006
                     
-                    font = cv2.FONT_HERSHEY_SIMPLEX
-                    text_pos = [int(self.pos.x - 140 * scale), int(self.pos.y - 25 * scale)]
-                    thickness = 1
-                    cv2.putText(frame, f"dist: {self.distance:.2f}cm", text_pos, font, scale, (230, 230, 230), thickness, cv2.LINE_AA)
-                    cv2.putText(frame, f"angle: {self.angle:.2f} deg", (text_pos[0], int(text_pos[1] + 50 * scale)), font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
+                    if self.draw_detections:
+                        for i in range(len(contours)):
+                            cv2.drawContours(frame, contours, i, (0, 255, 0))
+                        cv2.ellipse(frame, ellipse, (255, 255, 255), 1, cv2.LINE_AA)
+                        cv2.drawMarker(frame, [int(center[0]), int(center[1])], (0, 255, 0))
+                        
+                        cv2.drawMarker(frame, self.camera_center, (0, 255, 0))
+                        
+                        font = cv2.FONT_HERSHEY_SIMPLEX
+                        text_pos = [int(self.pos.x - 140 * scale), int(self.pos.y - 25 * scale)]
+                        thickness = 1
+                        cv2.putText(frame, f"dist: {self.distance:.2f}cm", text_pos, font, scale, (230, 230, 230), thickness, cv2.LINE_AA)
+                        cv2.putText(frame, f"angle: {self.angle:.2f} deg", (text_pos[0], int(text_pos[1] + 50 * scale)), font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
 
         else:
             self.pos = None

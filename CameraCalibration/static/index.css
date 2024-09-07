@@ -61,3 +61,13 @@ button {
 #preview {
     display: none;
 }
+
+.color-text {
+    width: 33%;
+    font-size: 42pt;
+}
+
+.color-box {
+    width: 50%;
+    height: 10rem;
+}

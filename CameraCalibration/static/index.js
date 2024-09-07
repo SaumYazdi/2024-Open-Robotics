@@ -93,11 +93,21 @@ function update() {
                 }
                 radiusLabel.innerHTML = `Radius: ${radius}`;
                 
-                distance = calcDist(radius);
-                distanceLabel.innerHTML = `Estimated Distance: ${distance}`;
             })
             .catch(error => {return 0;});
             
+        fetch("/distance", {
+            method: "POST",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+            })
+            .then(response => response.json())
+            .then(data => {
+                distance = data.distance;
+                distanceLabel.innerHTML = `Estimated Distance: ${distance}`;
+            })
+            .catch(error => {return 0;});
         // Fetches ball x-position on camera.
         //fetch("/xOffset", {
             //method: "POST",

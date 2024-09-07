@@ -44,6 +44,7 @@ class Server(Flask):
         
         self.radius = None
         self.radial_distance = None
+        self.distance = None
         self.angle = None
         self.x_offset = None
         self.fps = None
@@ -51,7 +52,10 @@ class Server(Flask):
         # Calibration parameters
         self.a = self.k = None
         self.m = self.c = None
-        self.lower = self.upper = None
+        with open(join(dirname(__file__), "save.json"), "r") as f:
+            data = json.load(f)
+            self.lower = data["color"]["lower"]
+            self.upper = data["color"]["upper"]
 
     def gen_preview(self):
         """
@@ -93,7 +97,7 @@ class Server(Flask):
             return jsonify(response_data)
         
         # Route to handle the offer request
-        @app.route('/offer', methods=['POST'])
+        @self.route('/offer', methods=['POST'])
         def offer_route():
             return offer()
         
@@ -113,6 +117,30 @@ class Server(Flask):
         @self.route("/radius", methods=["POST"])
         def radius():
             return jsonify({"radius": self.radius, "radialDistance": self.radial_distance})
+ 
+        @self.route("/distance", methods=["POST"])
+        def distance():
+            return jsonify({"distance": self.distance})
+ 
+        @self.route("/colors", methods=["POST"])
+        def colors():
+            return jsonify({"lower": self.lower, "upper": self.upper})
+ 
+        @self.route("/setColors", methods=["POST"])
+        def set_colors():
+            data = json.loads(request.data)
+            try:
+                self.lower = tuple([float(c) for c in data["lower"]])
+                self.upper = tuple([float(c) for c in data["upper"]])
+            except ValueError:
+                return jsonify({})
+            with open(join(dirname(__file__), "save.json"), "r") as f:
+                data = json.load(f)
+            data["color"]["lower"] = self.lower
+            data["color"]["upper"] = self.upper
+            with open(join(dirname(__file__), "save.json"), "w") as f:
+                json.dump(data, f, sort_keys=True, indent=4)
+            return jsonify({})
  
         @self.route("/angle", methods=["POST"])
         def angle():
