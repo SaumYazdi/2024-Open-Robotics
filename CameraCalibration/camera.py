@@ -189,18 +189,38 @@ class Camera:
         if len(contours) > 0:
             # Merge contours into a convex contour to be fitted with ellipse
             points = []
-            for i in range(len(contours)):
-                for pt in contours[i]:
+            # Loop over contours from largest to smallest area
+            sorted_contours = sorted(contours, key=lambda x: x.size, reverse=True)
+            pX = pY = None
+            for i in range(len(sorted_contours)):
+                cnt = sorted_contours[i]
+                # Skip over contour if size is too small
+                if cnt.size < 20:
+                    continue
+                # Compute center of contour
+                M = cv2.moments(cnt)
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+                if pX is None:
+                    dist_to_last_contour = 0
+                else:
+                    dist_to_last_contour = sqrt((cX - pX)**2 + (cY - pY)**2)
+                # If the distance to the last (valid) contour is too far, then skip
+                if dist_to_last_contour > 120:
+                    continue
+                pX, pY = cX, cY
+                if self.draw_detections:
+                    cv2.drawMarker(frame, (cX, cY), (255, 0, 0))
+                for pt in cnt:
                     points.append(pt)
-                cv2.drawContours(frame, contours, i, (0, 255, 0))
             # c = max(contours, key=cv2.contourArea)
-            c = cv2.convexHull(numpy.array(points, dtype=numpy.int32))
+            if len(points) > 4:
+                c = cv2.convexHull(numpy.array(points, dtype=numpy.int32))
             
-            if len(c) > 4:
                 ellipse = cv2.fitEllipse(c)
                 center, size, angle = ellipse
                 
-                # Not actually radius i just cbf changing the variable name
+                # Not actually radius, i just cbf changing the variable name
                 self.radius = size[0] * size[1] # cv2.contourArea(c)
                 self.distance = get_dist(self.radius)
                 scale = size[0] * .006
@@ -211,6 +231,8 @@ class Camera:
                 self.radial_distance = sqrt(delta_pos[0]**2 + delta_pos[1]**2)
                 
                 if self.draw_detections:
+                    for i in range(len(contours)):
+                        cv2.drawContours(frame, contours, i, (0, 255, 0))
                     cv2.ellipse(frame, ellipse, (255, 255, 255), 1, cv2.LINE_AA)
                     cv2.drawMarker(frame, [int(center[0]), int(center[1])], (0, 255, 0))
                     
