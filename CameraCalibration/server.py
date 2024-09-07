@@ -4,6 +4,11 @@ Flask server to handle the calibration control panel.
 
 from flask import Flask, render_template, jsonify, request, Response
 import logging
+from aiortc import RTCPeerConnection, RTCSessionDescription
+import uuid
+import asyncio
+import logging
+import time
 
 from scipy.optimize import curve_fit
 import numpy as np
@@ -56,11 +61,42 @@ class Server(Flask):
             if self.preview is not None:
                 _, img_arr = cv2.imencode(".jpeg", self.preview)
                 img_bytes = img_arr.tobytes()
-                # image = PNG_START + base64.b64encode(img_bytes).decode("utf-8")
                 image = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_bytes + b'\r\n')
                 yield image
 
     def _define_routes(self):
+        def offer():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            future = asyncio.run_coroutine_threadsafe(offer_async(), loop)
+            return future.result()
+        
+        async def offer_async():
+            params = await request.json
+            offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+
+            # Create an RTCPeerConnection instance
+            pc = RTCPeerConnection()
+
+            # Generate a unique ID for the RTCPeerConnection
+            pc_id = "PeerConnection(%s)" % uuid.uuid4()
+            pc_id = pc_id[:8]
+
+            # Create and set the local description
+            await pc.createOffer(offer)
+            await pc.setLocalDescription(offer)
+
+            # Prepare the response data with local SDP and type
+            response_data = {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
+
+            return jsonify(response_data)
+        
+        # Route to handle the offer request
+        @app.route('/offer', methods=['POST'])
+        def offer_route():
+            return offer()
+        
         @self.route("/")
         def index():
             with open(save_path, "r") as f:

@@ -7,6 +7,7 @@ from threading import Thread
 from camera import Camera
 from server import Server
 from robot import Robot
+from fan import Fan
 
 def update():
     """
@@ -35,6 +36,9 @@ if __name__ == "__main__":
     server = Server(__name__)
     
     robot = Robot(camera)
+    
+    fan = Fan()
+    fan.on()
 
     threads = [
         # Thread(target=server.start),
