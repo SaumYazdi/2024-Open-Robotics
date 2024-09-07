@@ -65,7 +65,7 @@ function calibrateDistNext() {
             })
             .then(response => response.json())
             .then(data => {
-                distSteps.push({x: data.radius, y: originalStep});
+                distSteps.push({x: data.radius * data.radialDistance, y: originalStep});
             })
             .catch(error => {return 0;});
     }

@@ -16,6 +16,7 @@ import base64
 import cv2
 import json
 import colorsys
+from time import perf_counter
 
 DEBUG = False
 
@@ -37,6 +38,8 @@ class Server(Flask):
         self.show_preview = False
         
         self.radius = None
+        self.radial_distance = None
+        self.angle = None
         self.x_offset = None
         self.fps = None
         
@@ -73,7 +76,11 @@ class Server(Flask):
  
         @self.route("/radius", methods=["POST"])
         def radius():
-            return jsonify({"radius": self.radius})
+            return jsonify({"radius": self.radius, "radialDistance": self.radial_distance})
+ 
+        @self.route("/angle", methods=["POST"])
+        def angle():
+            return jsonify({"angle": self.angle})
  
         @self.route("/xOffset", methods=["POST"])
         def x_offset():

@@ -13,8 +13,7 @@ import imutils
 from time import perf_counter, sleep
 from typing import Callable
 from classes import *
-from math import atan2, degrees, sqrt
-import numpy
+from math import atan2, degrees
 
 # try:
 from picamera2 import Picamera2
@@ -54,7 +53,6 @@ with open(save_path, "r") as f:
     dist = data["dist"]
     angle = data["angle"]
     color = data["color"]
-    camera_center = data["center"]
     f.close()
     
 def get_dist(radius):
@@ -135,7 +133,6 @@ class Camera:
                 
         self.pos = None
         self.radius = None
-        self.radial_distance = None
         # self.velocity = None
         # self.points = deque(maxlen=BUFFER_SIZE)
         
@@ -144,7 +141,6 @@ class Camera:
 
         self.image = None
         self.color_mask = None
-        self.camera_center = camera_center
 
         self.update_events = []
         
@@ -167,59 +163,59 @@ class Camera:
         return mask
 
     def get_distance(self):
-        # if self.radius is None:
-            # return None
-        # if self.distance is None:
-            # return get_dist(self.radius)
+        if self.radius is None:
+            return None
+        if self.distance is None:
+            return get_dist(self.radius)
         return self.distance
 
     def get_angle(self):
-        # if self.radius is None:
-            # return None
-        # if self.angle is None:
-            # return get_angle(self.pos.x, self.get_distance())
-        return self.angle
+        if self.radius is None:
+            return None
+        if self.angle is None:
+            return get_angle(self.pos.x, self.get_distance())
+        return self.distance
     
     def compute(self, frame):
         mask = self.get_mask(frame)
-        contours = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours = cv2.findContours(mask, cv2.RETR_EXTERNAL,
+            cv2.CHAIN_APPROX_SIMPLE)
         contours = imutils.grab_contours(contours)
         center = None
         
         if len(contours) > 0:
-            # Merge contours into a convex contour to be fitted with ellipse
-            points = []
-            for i in range(len(contours)):
-                for pt in contours[i]:
-                    points.append(pt)
-                cv2.drawContours(frame, contours, i, (0, 255, 0))
-            # c = max(contours, key=cv2.contourArea)
-            c = cv2.convexHull(numpy.array(points, dtype=numpy.int32))
+            c = max(contours, key=cv2.contourArea)
+            ((x, y), radius) = cv2.minEnclosingCircle(c)
+            pos = Vector(x, y)
+            M = cv2.moments(c)
+            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
             
-            if len(c) > 4:
-                ellipse = cv2.fitEllipse(c)
-                center, size, angle = ellipse
-                
-                # Not actually radius i just cbf changing the variable name
-                self.radius = size[0] * size[1] # cv2.contourArea(c)
-                self.distance = get_dist(self.radius)
-                scale = size[0] * .006
-                self.pos = Vector(center)
-                delta_pos = self.pos.x - self.camera_center[0], self.pos.y - self.camera_center[1]
-                self.angle = -atan2(delta_pos[1], delta_pos[0])
-                # self.angle = degrees(self.angle) # RADIANS TO DEGREES
-                self.radial_distance = sqrt(delta_pos[0]**2 + delta_pos[1]**2)
-                
-                if self.draw_detections:
-                    cv2.ellipse(frame, ellipse, (255, 255, 255), 1, cv2.LINE_AA)
-                    cv2.drawMarker(frame, [int(center[0]), int(center[1])], (0, 255, 0))
+            if radius > MIN_RADIUS:
+                if self.pos is None:
+                    self.pos = pos
+                if self.radius is None:
+                    self.radius = radius
+
+                if dist_squared(self.pos, pos) < MAX_BALL_JUMP ** 2:
+                    # old_pos = self.pos.copy()
+                    self.pos.x = lerp(self.pos.x, x, LERP_STEP)
+                    self.pos.y = lerp(self.pos.y, y, LERP_STEP)
+                    # self.velocity = Vector(self.pos.x - old_pos.x, self.pos.y - old_pos.y)
+
+                    self.radius = lerp(self.radius, radius, LERP_STEP)
+                    self.distance = get_dist(self.radius)
+                    self.angle = degrees(get_angle(self.pos.x, self.distance))
                     
-                    cv2.drawMarker(frame, self.camera_center, (0, 255, 0))
+                if self.draw_detections:
+                    # Draw True Circle Pos and Centroid
+                    # cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+                    # cv2.circle(frame, center, 2, BALL_TRACK_COLOUR, -1)
+                    scale = self.radius * .006
                     
                     font = cv2.FONT_HERSHEY_SIMPLEX
                     text_pos = [int(self.pos.x - 140 * scale), int(self.pos.y - 25 * scale)]
                     thickness = 1
-                    cv2.putText(frame, f"dist: {self.distance:.2f}cm", text_pos, font, scale, (230, 230, 230), thickness, cv2.LINE_AA)
+                    cv2.putText(frame, f"dist: {self.distance:.2f}cm", text_pos, font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
                     cv2.putText(frame, f"angle: {self.angle:.2f} deg", (text_pos[0], int(text_pos[1] + 50 * scale)), font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
 
         else:
@@ -260,8 +256,7 @@ class Camera:
                 # cv2.line(frame, self.points[i - 1], self.points[i], BALL_TRACK_COLOUR, thickness)
             
             if self.pos and self.radius:
-                ...
-                # cv2.circle(frame, self.pos.int(), int(self.radius), BALL_TRACK_COLOUR, 1, cv2.LINE_AA)
+                cv2.circle(frame, self.pos.int(), int(self.radius), BALL_TRACK_COLOUR, 1, cv2.LINE_AA)
 
                 # Draw Velocity Vector
                 # point2 = Vector(self.pos.x + self.velocity.x * 50, self.pos.y + self.velocity.y * 50)

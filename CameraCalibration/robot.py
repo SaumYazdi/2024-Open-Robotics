@@ -22,6 +22,8 @@ class Robot:
         
         self.ser = serial.Serial(RECEIVER, BAUD_RATE, timeout=1)
         self.ser.reset_input_buffer()
+        
+        self.tick = 0
     
     def update(self):
         """System update loop. Updates the ball's distance and angle variables."""
@@ -31,6 +33,10 @@ class Robot:
         if self.distance and self.angle:
             self.send(self.distance, self.angle)
         print(f"Distance: {str(self.distance): <16} Angle: {str(self.angle): <16}")
+        
+        self.tick += 1
+        if self.tick % 5 == 0:
+            self.ser.reset_input_buffer()
         
     def send(self, dist, angle):
         """
@@ -45,6 +51,7 @@ class Robot:
         Start reading the camera and producing ball data.
         """
         self.camera.start()
+        print("e")
         
 
 if __name__ == "__main__":

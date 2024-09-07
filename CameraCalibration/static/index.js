@@ -99,7 +99,25 @@ function update() {
             .catch(error => {return 0;});
             
         // Fetches ball x-position on camera.
-        fetch("/xOffset", {
+        //fetch("/xOffset", {
+            //method: "POST",
+            //headers: {
+                //"Content-type": "application/json; charset=UTF-8"
+            //}
+            //})
+            //.then(response => response.json())
+            //.then(data => {
+                //let x = data.xOffset;
+                //estimatedX = calcX(x);
+                //xOffsetLabel.innerHTML = `Estimated X: ${estimatedX}`;
+                
+                //angle = calcAngle(estimatedX);
+                //angleLabel.innerHTML = `Estimated Angle: ${(angle * 180) / Math.PI}`;
+            //})
+            //.catch(error => {return 0;});
+            
+        // Fetch ball angle from camera center
+        fetch("/angle", {
             method: "POST",
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
@@ -107,11 +125,7 @@ function update() {
             })
             .then(response => response.json())
             .then(data => {
-                let x = data.xOffset;
-                estimatedX = calcX(x);
-                xOffsetLabel.innerHTML = `Estimated X: ${estimatedX}`;
-                
-                angle = calcAngle(estimatedX);
+                angle = data.angle;
                 angleLabel.innerHTML = `Estimated Angle: ${(angle * 180) / Math.PI}`;
             })
             .catch(error => {return 0;});
