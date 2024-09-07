@@ -8,6 +8,10 @@
         <h1>Robot Calibration</h1>
         
         <div class="box">
+            <video id="remoteVideo" autoplay></video>
+            <a href="{{ url_for('video_feed') }}" target="_self">Link to Video Feed</a>
+            <script src="{{ url_for('static', filename='main.js') }}"></script>
+            
             <button id="preview-button" onclick="showPreview()">Show Preview</button>
             <span id="preview-frame">
                 <p id="fps">0 FPS</p>

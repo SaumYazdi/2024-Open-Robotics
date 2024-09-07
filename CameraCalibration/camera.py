@@ -272,23 +272,6 @@ class Camera:
             frame = imutils.resize(frame, width=RESIZE_WIDTH)
         frame = self.compute(frame)
 
-        if self.draw_detections:
-            # Draw Ball Trail
-            # for i in range(1, len(self.points)):
-                # if self.points[i - 1] is None or self.points[i] is None:
-                    # continue
-                
-                # thickness = int(np.sqrt(BUFFER_SIZE / float(i + 1)) * 2.5)
-                # cv2.line(frame, self.points[i - 1], self.points[i], BALL_TRACK_COLOUR, thickness)
-            
-            if self.pos and self.radius:
-                ...
-                # cv2.circle(frame, self.pos.int(), int(self.radius), BALL_TRACK_COLOUR, 1, cv2.LINE_AA)
-
-                # Draw Velocity Vector
-                # point2 = Vector(self.pos.x + self.velocity.x * 50, self.pos.y + self.velocity.y * 50)
-                # cv2.line(frame, self.pos.int(), point2.int(), (255, 0, 50), 3)
-
         if self.preview == True:
             cv2.imshow(self.window_name, frame)
             key = cv2.waitKey(1) & 0xFF
