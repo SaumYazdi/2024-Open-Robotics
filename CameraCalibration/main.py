@@ -8,6 +8,7 @@ from camera import Camera
 from server import Server
 from robot import Robot
 from fan import Fan
+import sys
 
 def update():
     """
@@ -33,17 +34,25 @@ def update():
 if __name__ == "__main__":
     camera = Camera("Soccer Robot", preview=False, draw_detections=False)
     camera.set_update(update)
-    server = Server(__name__)
     
     robot = Robot(camera)
     
     fan = Fan()
     fan.on()
-
+ 
     threads = [
-        # Thread(target=server.start),
         Thread(target=robot.start),
     ]
 
+    args = sys.argv
+    if len(args) > 1:
+        arg = args[1]
+    
+        if arg == "view":
+            print("Starting flask webserver")
+            camera.draw_detections = True
+            server = Server(__name__)
+            threads.append(Thread(target=server.start))
+           
     for thread in threads:
         thread.start()

@@ -52,16 +52,22 @@ save_path = join(dirname(__file__), "save.json")
 
 with open(save_path, "r") as f:
     data = json.load(f)
-    dist = data["dist"]
-    angle = data["angle"]
+    # dist = data["dist"]
+    # angle = data["angle"]
     color = data["color"]
     camera_center = data["center"]
     f.close()
     
 def get_dist(radius):
+    with open(save_path, "r") as f:
+        data = json.load(f)
+        dist = data["dist"]
     return dist["k"] * pow(radius, dist["a"])
 
 def get_angle(x, distance):
+    with open(save_path, "r") as f:
+        data = json.load(f)
+        angle = data["angle"]
     normal_x = x / distance
     estimated_x = angle["m"] * normal_x + angle["c"]
     return atan2(estimated_x, distance)
@@ -236,10 +242,9 @@ class Camera:
                     self.pos = Vector(center)
                     delta_pos = self.pos.x - self.camera_center[0], self.pos.y - self.camera_center[1]
                     self.angle = -atan2(delta_pos[1], delta_pos[0])
-                    # self.angle = degrees(self.angle) # RADIANS TO DEGREES
                     self.radial_distance = sqrt(delta_pos[0]**2 + delta_pos[1]**2)
-                    self.radius = size[0] * size[1] # cv2.contourArea(c)
-                    self.distance = get_dist(self.radius * self.radial_distance)
+                    self.radius = size[0] * size[1]
+                    self.distance = get_dist(self.radius / self.radial_distance)
                     scale = size[0] * .006
                     
                     if self.draw_detections:
@@ -282,6 +287,7 @@ class Camera:
         # Resize to detection resolution
         if type(RESIZE_WIDTH) == int:
             frame = imutils.resize(frame, width=RESIZE_WIDTH)
+            
         frame = self.compute(frame)
 
         if self.preview == True:

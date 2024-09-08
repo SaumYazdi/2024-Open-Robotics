@@ -61,12 +61,16 @@ class Server(Flask):
         """
         Video Stream
         """
+        old_preview = None
         while self.show_preview:
             if self.preview is not None:
-                _, img_arr = cv2.imencode(".jpeg", self.preview)
-                img_bytes = img_arr.tobytes()
-                image = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_bytes + b'\r\n')
-                yield image
+                if old_preview is not None:
+                    if not np.array_equal(old_preview, self.preview):
+                        _, img_arr = cv2.imencode(".jpeg", self.preview)
+                        img_bytes = img_arr.tobytes()
+                        image = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_bytes + b'\r\n')
+                        yield image
+                old_preview = self.preview.copy()
 
     def _define_routes(self):
         def offer():

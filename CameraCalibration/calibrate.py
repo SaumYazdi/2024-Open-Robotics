@@ -6,6 +6,7 @@ Run this file 'calibrate.py' and access the control panel at <ipv4-address>:8080
 from threading import Thread
 from camera import Camera
 from server import Server
+from fan import Fan
 
 def update():
     """
@@ -32,6 +33,9 @@ if __name__ == "__main__":
     camera = Camera("Ball Detector", preview=False, draw_detections=True)
     camera.set_update(update)
     server = Server(__name__)
+
+    fan = Fan()
+    fan.on()
 
     threads = [
         Thread(target=server.start),
