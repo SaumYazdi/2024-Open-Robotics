@@ -26,6 +26,8 @@ let angleLabel = getE("angle-label");
 let measureLabel = getE("measure-label");
 let measureSlider = getE("measure-slider");
 
+let fieldDisplay = getE("field-display");
+
 MEASURE_INTERVAL = measureSlider.value;
 measureLabel.innerHTML = `Measure every ${round(MEASURE_INTERVAL * .001, 3)}s`;
 measureSlider.addEventListener("input", () => {
@@ -70,6 +72,11 @@ function showPreview() {
     }
 }
   
+let context = fieldDisplay.getContext("2d");
+let sw = fieldDisplay.width;
+let sh = fieldDisplay.height;
+let fw = 500;
+        
 ticks = 0;
 function update() {
     if (updating && (ticks % Math.round(MEASURE_INTERVAL / 100) == 0)) {
@@ -91,7 +98,7 @@ function update() {
                     detectedLabel.innerHTML = "Ball Not Detected";
                     measurements.style = "";
                 }
-                radiusLabel.innerHTML = `Radius: ${radius}`;
+                radiusLabel.innerHTML = `Radius: ${Math.round(radius)}`;
                 
             })
             .catch(error => {return 0;});
@@ -105,26 +112,9 @@ function update() {
             .then(response => response.json())
             .then(data => {
                 distance = data.distance;
-                distanceLabel.innerHTML = `Estimated Distance: ${distance}`;
+                distanceLabel.innerHTML = `Estimated Distance: ${Math.round(distance * 100) / 100} cm`;
             })
             .catch(error => {return 0;});
-        // Fetches ball x-position on camera.
-        //fetch("/xOffset", {
-            //method: "POST",
-            //headers: {
-                //"Content-type": "application/json; charset=UTF-8"
-            //}
-            //})
-            //.then(response => response.json())
-            //.then(data => {
-                //let x = data.xOffset;
-                //estimatedX = calcX(x);
-                //xOffsetLabel.innerHTML = `Estimated X: ${estimatedX}`;
-                
-                //angle = calcAngle(estimatedX);
-                //angleLabel.innerHTML = `Estimated Angle: ${(angle * 180) / Math.PI}`;
-            //})
-            //.catch(error => {return 0;});
             
         // Fetch ball angle from camera center
         fetch("/angle", {
@@ -136,7 +126,7 @@ function update() {
             .then(response => response.json())
             .then(data => {
                 angle = data.angle;
-                angleLabel.innerHTML = `Estimated Angle: ${(angle * 180) / Math.PI}`;
+                angleLabel.innerHTML = `Estimated Angle: ${Math.round((angle * 18000) / Math.PI) / 100} deg`;
             })
             .catch(error => {return 0;});
             
@@ -153,6 +143,39 @@ function update() {
                 fpsLabel.innerHTML = `${fps} FPS`;
             })
             .catch(error => {return 0;});
+            
+        context.clearRect(0, 0, sw, sh);
+        
+        context.beginPath();
+        context.arc(sw / 2, sh / 2, 10 * fw / sw, 0, 2 * Math.PI, false);
+        context.fillStyle = '#42f5aa';
+        context.fill();
+        context.lineWidth = 2;
+        context.strokeStyle = '#51ad92';
+        context.stroke();
+        
+        w = 10 * fw / sw;
+        var path = new Path2D();
+        path.moveTo(sw / 2 + w, sh / 2 + 5);
+        path.lineTo(sw / 2 + w + 10, sh / 2);
+        path.lineTo(sw / 2 + w, sh / 2 - 5);
+        context.fill(path);
+        
+        if (distance && angle) {
+            context.beginPath();
+            let ball_pos = [sw/2 + Math.cos(angle) * distance * fw / sw, sh/2 - Math.sin(angle) * distance * fw / sw]
+            context.arc(ball_pos[0], ball_pos[1], 5 * fw / sw, 0, 2 * Math.PI, false);
+            context.fillStyle = 'orange';
+            context.fill();
+            context.lineWidth = 2;
+            context.strokeStyle = '#f56642';
+            context.stroke();
+            
+            context.font = "11px Arial";
+            context.fillStyle = "#4265cf";
+            context.fillText(`${Math.round(angle * 1800 / Math.PI) / 10} deg`, ball_pos[0] - 30, ball_pos[1] + 20);
+            context.fillText(`${Math.round(distance * 10) / 10} cm`, ball_pos[0] - 20, ball_pos[1] + 32);
+        }
     }
 
     ticks++;
