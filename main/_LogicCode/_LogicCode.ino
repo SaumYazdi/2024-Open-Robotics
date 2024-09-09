@@ -152,8 +152,7 @@ char data[4];
 float distance = 0;
 float angle = 0;
 
-void loop() {
-
+void readBall() {
   if (Serial.available() > 0) {
     char recv = Serial.read();
     data[byteIndex] = recv;
@@ -166,8 +165,13 @@ void loop() {
 
       uint8_t angleBytes[4] = {data[4], data[5], data[6], data[7]};
       angle = bytesToFloat(angleBytes);
-    } 
+    }
   }
+}
+
+void loop() {
+
+  readBall();
 
   float finalDirection = calculateFinalDirection(angle, distance);
 
