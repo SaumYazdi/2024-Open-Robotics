@@ -8,12 +8,6 @@ PowerfulBLDCdriver motor3;
 PowerfulBLDCdriver motor4;
 PowerfulBLDCdriver motor5;
 
-struct Ball {
-  float angle;
-  float distance;
-};
-
-
 // Polynomial function for angle
 float anglePolynomial(float x) {
   return (-0.00000002124 * powf(x, 5)) + 
@@ -24,19 +18,20 @@ float anglePolynomial(float x) {
 }
 
 // Polynomial function for distance
-float distancePolynomial(float x) {
+float distancePolynomial(x) {
   return (-0.000008789 * powf(x, 2)) + 
          (0.0009934 * x) + 1.004;
 }
 
-float calculateFinalDirection(Ball ball) {
-  bool isNegative = ball.angle < 0;  // Check if the angle is negative
+float calculateFinalDirection(float angle, float distance) {
+  bool isNegative = angle < 0;  // Check if the angle is negative
+
   if (isNegative) {
-    ball.angle = -ball.angle;  // Make the angle positive
+    ball.angle = -angle;  // Make the angle positive
   }
 
-  float mappedAngle = anglePolynomial(ball.angle);
-  float scaledAngle = mappedAngle * distancePolynomial(ball.distance);
+  float mappedAngle = anglePolynomial(angle);
+  float scaledAngle = mappedAngle * distancePolynomial(distance);
 
   if (isNegative) {
     scaledAngle = -scaledAngle;  // Ensure the scaled angle is also negative
@@ -45,34 +40,44 @@ float calculateFinalDirection(Ball ball) {
   return scaledAngle;
 }
 
-void setMotorSpeeds(float scaledAngle) {
-    // Convert angle to radians
-    float rad = (scaledAngle - 45) * (PI / 180.0);
+void moveRobot(float angle, float rotation) {
 
-    // Calculate motor speeds
-    float speedY1 = -cosf(rad);
-    float speedX2 = -sinf(rad);
-    float speedY3 = cosf(rad);
-    float speedX4 = sinf(rad);
+  // Convert angle to radians
+  float rad = (angle - 45) * (PI / 180.0);
 
-    // Find the maximum absolute speed among the motors
-    float maxRawSpeed = max(max(abs(speedY1), abs(speedX2)), max(abs(speedY3),abs(speedX4)));
+  // Calculate motor speeds
+  float speedY1 = -cosf(rad);
+  float speedX2 = -sinf(rad);
+  float speedY3 = cosf(rad);
+  float speedX4 = sinf(rad);
 
-    // Scale factor to ensure the largest motor speed is at maxspeed
-    float maxSpeed = 90000000;
-    float scaleFactor = maxSpeed / maxRawSpeed;
+  // Find the maximum absolute speed among the motors
+  float maxRawSpeed = max(max(abs(speedY1), abs(speedX2)), max(abs(speedY3),abs(speedX4)));
 
-    // Apply the scale factor to all motor speeds
-    float scaledSpeedY1 = speedY1 * scaleFactor;
-    float scaledSpeedX2 = speedX2 * scaleFactor;
-    float scaledSpeedY3 = speedY3 * scaleFactor;
-    float scaledSpeedX4 = speedX4 * scaleFactor;
+  // Scale factor to ensure the largest motor speed is at maxspeed
+  float targetSpeed = 90000000;
+  float scaleFactor = targetSpeed / maxRawSpeed;
 
-    // Set the motor speeds
-    motor1.setSpeed(scaledSpeedY1);
-    motor2.setSpeed(scaledSpeedX2);
-    motor3.setSpeed(scaledSpeedY3);
-    motor4.setSpeed(scaledSpeedX4);
+  float rotationScaling = 100000;
+
+  // Apply the scale factor to all motor speeds
+  float scaledSpeedY1 = speedY1 * scaleFactor + rotation * rotationScaling;
+  float scaledSpeedX2 = speedX2 * scaleFactor + rotation * rotationScaling;
+  float scaledSpeedY3 = speedY3 * scaleFactor + rotation * rotationScaling;
+  float scaledSpeedX4 = speedX4 * scaleFactor + rotation * rotationScaling;
+
+  // Set the motor speeds
+  motor1.setSpeed(scaledSpeedY1);
+  motor2.setSpeed(scaledSpeedX2);
+  motor3.setSpeed(scaledSpeedY3);
+  motor4.setSpeed(scaledSpeedX4);
+}
+
+float bytesToFloat(uint8_t *bytes) {
+  static_assert(sizeof(float) == 4, "Float size shuold be 4 bytes.");
+  float f;
+  memcpy(&f, bytes, 4);
+  return f;
 }
 
 void setup() {
@@ -81,6 +86,9 @@ void setup() {
   Serial.begin(115200); 
   Wire.begin(); 
   Wire.setClock(1000000);
+
+  // Pi5 Serial
+  Serial.begin(9600);
 
   // Initialize motors with calibration values
   motor1.begin(25, &Wire);
@@ -137,16 +145,37 @@ void setup() {
   delay(500);
 }
 
+const int NUM_BYTES = 8;
+int byteIndex = 0;
+char data[4];
+
+float distance = 0;
+float angle = 0;
 
 void loop() {
-  // Assuming you have a method to update ball's position
-  Ball ball = {100, 150}; // Example ball position, replace with real data
 
-  float finalDirection = calculateFinalDirection(ball);
+  if (Serial.available() > 0) {
+    char recv = Serial.read();
+    data[byteIndex] = recv;
+
+    if (++byteIndex >= NUM_BYTES) {
+      byteIndex = 0;
+      
+      uint8_t distanceBytes[4] = {data[0], data[1], data[2], data[3]};
+      distance = bytesToFloat(distanceBytes);
+
+      uint8_t angleBytes[4] = {data[4], data[5], data[6], data[7]};
+      angle = bytesToFloat(angleBytes);
+    } 
+  }
+
+  float finalDirection = calculateFinalDirection(angle, distance);
 
   // Set motor speeds based on the final direction
-  setMotorSpeeds(finalDirection);
-  motor5.setSpeed(90000000);
-  delay(1); // Adjust delay as needed
+  moveRobot(finalDirection, 0);
 
+  // Dribble
+  motor5.setSpeed(90000000);
+  
+  delay(1); // Adjust delay as needed
 }
