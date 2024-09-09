@@ -276,9 +276,9 @@ class Camera:
         return self.video_stream.capture_array()
     
     def _update(self):
-        # start = perf_counter()
+        start = perf_counter()
         frame = self.read()
-        # print(f"'read frame' took {(perf_counter() - start) * 1000:.2f}ms")
+        print(f"'read frame' took {(perf_counter() - start) * 1000:.2f}ms")
         
         if frame is None:
             return
@@ -287,8 +287,10 @@ class Camera:
         # Resize to detection resolution
         if type(RESIZE_WIDTH) == int:
             frame = imutils.resize(frame, width=RESIZE_WIDTH)
-            
+        
+        start = perf_counter()
         frame = self.compute(frame)
+        print(f"'compute frame' took {(perf_counter() - start) * 1000:.2f}ms")
 
         if self.preview == True:
             cv2.imshow(self.window_name, frame)
