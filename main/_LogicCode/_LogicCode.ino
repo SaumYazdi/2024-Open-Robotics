@@ -18,9 +18,9 @@ float anglePolynomial(float x) {
 }
 
 // Polynomial function for distance
-float distancePolynomial(float x) {
-  return (-0.000008789 * powf(x, 2)) + 
-         (0.0009934 * x) + 1.004;
+float distancePolynomial(x) {
+  return (-0.0005 * powf(x, 2)) + 
+         (0.015 * x) + 1;
 }
 
 float calculateFinalDirection(float angle, float distance) {
