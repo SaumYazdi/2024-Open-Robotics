@@ -18,7 +18,7 @@ float anglePolynomial(float x) {
 }
 
 // Polynomial function for distance
-float distancePolynomial(x) {
+float distancePolynomial(float x) {
   return (-0.000008789 * powf(x, 2)) + 
          (0.0009934 * x) + 1.004;
 }
@@ -27,11 +27,11 @@ float calculateFinalDirection(float angle, float distance) {
   bool isNegative = angle < 0;  // Check if the angle is negative
 
   if (isNegative) {
-    ball.angle = -angle;  // Make the angle positive
+    angle = -angle;  // Make the angle positive
   }
 
   float mappedAngle = anglePolynomial(angle);
-  float scaledAngle = mappedAngle * distancePolynomial(distance);
+  float scaledAngle = mappedAngle * max(distancePolynomial(distance),0);
 
   if (isNegative) {
     scaledAngle = -scaledAngle;  // Ensure the scaled angle is also negative
@@ -176,7 +176,7 @@ void loop() {
   float finalDirection = calculateFinalDirection(angle, distance);
 
   // Set motor speeds based on the final direction
-  moveRobot(finalDirection, 0);
+  moveRobot(angle, 0);
 
   // Dribble
   motor5.setSpeed(90000000);
