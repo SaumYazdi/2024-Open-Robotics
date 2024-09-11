@@ -14,6 +14,9 @@ def update():
     """
     Update server values with ball measurements for calibration
     """
+    if server is None:
+        return
+        
     if camera.pos is not None:
         server.x_offset = camera.pos.x
     else:
@@ -44,6 +47,7 @@ if __name__ == "__main__":
         Thread(target=robot.start),
     ]
 
+    server = None
     args = sys.argv
     if len(args) > 1:
         arg = args[1]

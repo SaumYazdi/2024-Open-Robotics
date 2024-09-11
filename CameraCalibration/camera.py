@@ -52,22 +52,32 @@ save_path = join(dirname(__file__), "save.json")
 
 with open(save_path, "r") as f:
     data = json.load(f)
-    # dist = data["dist"]
-    # angle = data["angle"]
+    dist = data["dist"]
+    angle = data["angle"]
     color = data["color"]
     camera_center = data["center"]
     f.close()
     
 def get_dist(radius):
-    with open(save_path, "r") as f:
-        data = json.load(f)
-        dist = data["dist"]
+    global dist
+    try:
+        with open(save_path, "r") as f:
+            data = json.load(f)
+            dist = data["dist"]
+    except json.JSONDecodeError:
+        pass
     return dist["k"] * pow(radius, dist["a"])
 
 def get_angle(x, distance):
-    with open(save_path, "r") as f:
-        data = json.load(f)
-        angle = data["angle"]
+    global angle
+    
+    try:
+        with open(save_path, "r") as f:
+            data = json.load(f)
+            angle = data["angle"]
+    except json.JSONDecodeError:
+        pass
+        
     normal_x = x / distance
     estimated_x = angle["m"] * normal_x + angle["c"]
     return atan2(estimated_x, distance)
@@ -204,17 +214,25 @@ class Camera:
         contours = imutils.grab_contours(contours)
         center = None
         
+        if self.draw_detections:
+            cv2.drawMarker(frame, self.camera_center, (0, 255, 0))
+                
         if len(contours) > 0:
+            
             # Merge contours into a convex contour to be fitted with ellipse
             points = []
+            
             # Loop over contours from largest to smallest area
             sorted_contours = sorted(contours, key=lambda x: x.size, reverse=True)
             pX = pY = None
+            
             for i in range(len(sorted_contours)):
                 cnt = sorted_contours[i]
+                
                 # Skip over contour if size is too small
                 if cnt.size < 20:
                     continue
+                    
                 # Compute center of contour
                 M = cv2.moments(cnt)
                 cX = int(M["m10"] / M["m00"])
@@ -223,6 +241,7 @@ class Camera:
                     dist_to_last_contour = 0
                 else:
                     dist_to_last_contour = sqrt((cX - pX)**2 + (cY - pY)**2)
+                    
                 # If the distance to the last (valid) contour is too far, then skip
                 if dist_to_last_contour > 120:
                     continue
@@ -231,9 +250,10 @@ class Camera:
                     cv2.drawMarker(frame, (cX, cY), (255, 0, 0))
                 for pt in cnt:
                     points.append(pt)
-            # c = max(contours, key=cv2.contourArea)
+            
             if len(points) > 4:
                 c = cv2.convexHull(numpy.array(points, dtype=numpy.int32))
+                
                 if c.size > 4:
                     ellipse = cv2.fitEllipse(c)
                     center, size, angle = ellipse
@@ -248,18 +268,18 @@ class Camera:
                     scale = size[0] * .006
                     
                     if self.draw_detections:
+                        
                         for i in range(len(contours)):
                             cv2.drawContours(frame, contours, i, (0, 255, 0))
+                            
                         cv2.ellipse(frame, ellipse, (255, 255, 255), 1, cv2.LINE_AA)
                         cv2.drawMarker(frame, [int(center[0]), int(center[1])], (0, 255, 0))
                         
-                        cv2.drawMarker(frame, self.camera_center, (0, 255, 0))
-                        
-                        font = cv2.FONT_HERSHEY_SIMPLEX
-                        text_pos = [int(self.pos.x - 140 * scale), int(self.pos.y - 25 * scale)]
-                        thickness = 1
-                        cv2.putText(frame, f"dist: {self.distance:.2f}cm", text_pos, font, scale, (230, 230, 230), thickness, cv2.LINE_AA)
-                        cv2.putText(frame, f"angle: {self.angle:.2f} deg", (text_pos[0], int(text_pos[1] + 50 * scale)), font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
+                        # font = cv2.FONT_HERSHEY_SIMPLEX
+                        # text_pos = [int(self.pos.x - 140 * scale), int(self.pos.y - 25 * scale)]
+                        # thickness = 1
+                        # cv2.putText(frame, f"dist: {self.distance:.2f}cm", text_pos, font, scale, (230, 230, 230), thickness, cv2.LINE_AA)
+                        # cv2.putText(frame, f"angle: {self.angle:.2f} deg", (text_pos[0], int(text_pos[1] + 50 * scale)), font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
 
         else:
             self.pos = None

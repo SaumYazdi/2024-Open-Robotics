@@ -6,6 +6,7 @@ let calibrateDistStart = getE("calibrate-dist-start");
 
 let calibrationDistFrame = getE("calibration-dist");
 let calibrateDistLabel = getE("calibrate-dist-label");
+let distStepInterval = getE("calibrate-dist-step")
 
 distSteps = [];
 distStep = 0;
@@ -70,9 +71,11 @@ function calibrateDistNext() {
             .catch(error => {return 0;});
     }
 
-    distStep += 10;
+    let interval = parseInt(distStepInterval.value);
+    distStep += interval;
     
-    if (distStep > 60) {
+    // 6 calibration steps needed
+    if (distStep > interval * 6) {
         calibrateDistStart.style = "";
         calibrationDistFrame.style = "";
         setTimeout("distOutput();", 500);

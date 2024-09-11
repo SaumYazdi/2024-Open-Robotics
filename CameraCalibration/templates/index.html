@@ -29,20 +29,26 @@
             </span>
         </div>
 
-        <div id="measurements-frame" class="box">
+        <div style="display: flex;">
+        <div id="measurements-frame" style="width: 50%;" class="box">
             <h2 id="detected-label">Detected: </h2>
             <span id="measurements">
                 <p id="distance-label">Estimated Distance: </p>
                 <p id="angle-label">Estimated Angle: </p>
                 <p id="radius-label">Radius: </p>
             </span>
-            <p id="measure-label">Measure every 1s</p>
-            <input id="measure-slider" type="range" min=100 max=1000 value=1000 />
+            <p id="measure-label">Measure every 0.1s</p>
+            <input id="measure-slider" type="range" min=100 max=1000 value=100 />
+        </div>
+        <div style="width: 50%;" class="box">
+            <canvas id="field-display" alt="Field"></canvas>
+        </div>
         </div>
         
         <div class="calibration-frames">
         <span class="calibration-frame">
             <div id="calibrate-dist-start" class="box">
+                <input id="calibrate-dist-step" type="text" value="10" />
                 <button id="calibrate-dist-button" onclick="calibrateDistNext()">Calibrate Distance</button>
             </div>
             
