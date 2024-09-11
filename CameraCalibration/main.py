@@ -26,6 +26,8 @@ def update():
     server.radial_distance = camera.radial_distance
     server.angle = camera.angle
     server.distance = camera.distance
+
+    camera.mask_radius = server.mask_radius
     
     if server.lower != camera.orange_lower or server.upper != camera.orange_upper:
         camera.set_color_bounds(server.lower, server.upper)

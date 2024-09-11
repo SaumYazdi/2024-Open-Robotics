@@ -56,6 +56,7 @@ class Server(Flask):
             data = json.load(f)
             self.lower = data["color"]["lower"]
             self.upper = data["color"]["upper"]
+            self.mask_radius = data["maskRadius"]
 
     def gen_preview(self):
         """
@@ -64,46 +65,46 @@ class Server(Flask):
         old_preview = None
         while self.show_preview:
             if self.preview is not None:
-                if old_preview is not None:
-                    if not np.array_equal(old_preview, self.preview):
-                        _, img_arr = cv2.imencode(".jpeg", self.preview)
-                        img_bytes = img_arr.tobytes()
-                        image = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_bytes + b'\r\n')
-                        yield image
-                old_preview = self.preview.copy()
+                # if old_preview is not None:
+                #     if not np.array_equal(old_preview, self.preview):
+                _, img_arr = cv2.imencode(".jpeg", self.preview)
+                img_bytes = img_arr.tobytes()
+                image = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_bytes + b'\r\n')
+                yield image
+                # old_preview = self.preview.copy()
 
     def _define_routes(self):
-        def offer():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        # def offer():
+        #     loop = asyncio.new_event_loop()
+        #     asyncio.set_event_loop(loop)
             
-            future = asyncio.run_coroutine_threadsafe(offer_async(), loop)
-            return future.result()
+        #     future = asyncio.run_coroutine_threadsafe(offer_async(), loop)
+        #     return future.result()
         
-        async def offer_async():
-            params = await request.json
-            offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+        # async def offer_async():
+        #     params = await request.json
+        #     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
-            # Create an RTCPeerConnection instance
-            pc = RTCPeerConnection()
+        #     # Create an RTCPeerConnection instance
+        #     pc = RTCPeerConnection()
 
-            # Generate a unique ID for the RTCPeerConnection
-            pc_id = "PeerConnection(%s)" % uuid.uuid4()
-            pc_id = pc_id[:8]
+        #     # Generate a unique ID for the RTCPeerConnection
+        #     pc_id = "PeerConnection(%s)" % uuid.uuid4()
+        #     pc_id = pc_id[:8]
 
-            # Create and set the local description
-            await pc.createOffer(offer)
-            await pc.setLocalDescription(offer)
+        #     # Create and set the local description
+        #     await pc.createOffer(offer)
+        #     await pc.setLocalDescription(offer)
 
-            # Prepare the response data with local SDP and type
-            response_data = {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
+        #     # Prepare the response data with local SDP and type
+        #     response_data = {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
 
-            return jsonify(response_data)
+        #     return jsonify(response_data)
         
-        # Route to handle the offer request
-        @self.route('/offer', methods=['POST'])
-        def offer_route():
-            return offer()
+        # # Route to handle the offer request
+        # @self.route('/offer', methods=['POST'])
+        # def offer_route():
+        #     return offer()
         
         @self.route("/")
         def index():
@@ -114,6 +115,33 @@ class Server(Flask):
                 f.close()
             return render_template("index.html", a=dist["a"], k=dist["k"], m=angle["m"], c=angle["c"])
             
+        @self.route("/maskRadius", methods=["POST"])
+        def mask_radius():
+            with open(join(dirname(__file__), "save.json"), "r") as f:
+                data = json.load(f)
+            self.mask_radius = data["maskRadius"]
+            return jsonify({"radius": self.mask_radius})
+        
+        @self.route("/setMaskRadius", methods=["POST"])
+        def set_mask_radius():
+            data = json.loads(request.data)
+            radius = data["radius"]
+
+            try:
+                radius = int(radius)
+                if radius > 0:
+                    self.mask_radius = radius
+                    with open(join(dirname(__file__), "save.json"), "r") as f:
+                        data = json.load(f)
+                    data["maskRadius"] = self.mask_radius
+                    with open(join(dirname(__file__), "save.json"), "w") as f:
+                        json.dump(data, f, sort_keys=True, indent=4)
+
+            except Exception as exc:
+                pass
+
+            return jsonify({})
+
         @self.route("/fps", methods=["POST"])
         def fps():
             return jsonify({"fps": self.fps})

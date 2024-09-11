@@ -28,6 +28,8 @@ let measureSlider = getE("measure-slider");
 
 let fieldDisplay = getE("field-display");
 
+let circleMask = getE("calibrate-circle-mask");
+
 MEASURE_INTERVAL = measureSlider.value;
 measureLabel.innerHTML = `Measure every ${round(MEASURE_INTERVAL * .001, 3)}s`;
 measureSlider.addEventListener("input", () => {
@@ -53,6 +55,7 @@ var visible = false; // Preview visibility
 function showPreview() {
     let text = previewButton.innerHTML;
     if (text == "Show Preview") {
+        // createOffer();
         previewStream.src = "/preview";
         previewButton.innerHTML = "Hide Preview";
         previewFrame.style.display = "flex";
@@ -62,13 +65,13 @@ function showPreview() {
         previewButton.innerHTML = "Show Preview";
         previewFrame.style = "";
         visible = false;
-        fetch("hidePreview", {
-                method: "POST",
-                headers: {
-                    "Content-type": "application/json; charset=UTF-8"
-                }
-            })
-            .catch(error => {return 0;});
+        fetch("/hidePreview", {
+            method: "POST",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+        })
+        .catch(error => {return 0;});
     }
 }
   
@@ -129,7 +132,8 @@ function update() {
                 angleLabel.innerHTML = `Estimated Angle: ${Math.round((angle * 18000) / Math.PI) / 100} deg`;
             })
             .catch(error => {return 0;});
-            
+        
+        if (visible) {
         // Retrive system FPS.
         fetch("/fps", {
             method: "POST",
@@ -143,6 +147,7 @@ function update() {
                 fpsLabel.innerHTML = `${fps} FPS`;
             })
             .catch(error => {return 0;});
+        }
             
         context.clearRect(0, 0, sw, sh);
         
@@ -185,4 +190,32 @@ function update() {
 
 update();
 
-previewStream.addEventListener("load", () => {setPreview();});
+previewStream.addEventListener("load", () => {
+    
+    // Retrive circle mask radius.
+    fetch("/maskRadius", {
+        method: "POST",
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        circleMask.value = data.radius;
+    })
+    .catch(error => {return 0;});
+        
+    setPreview();
+});
+
+circleMask.addEventListener("change", () => {
+    let maskRadius = circleMask.value;
+    fetch("/setMaskRadius", {
+        method: "POST",
+        body: JSON.stringify({radius: maskRadius}),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    })
+    .catch(error => {return 0;});
+});

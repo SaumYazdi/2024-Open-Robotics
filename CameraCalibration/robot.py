@@ -20,12 +20,6 @@ class Robot:
         self.camera = camera
         self.camera.set_update(self.update)
         
-        try:
-            self.ser = serial.Serial(RECEIVER, BAUD_RATE, timeout=1)
-        except serial.serialutil.SerialException:
-            raise Exception("PI Pico is not connected to serial port on the RPI5.")
-        self.ser.reset_input_buffer()
-        
         self.tick = 0
     
     def update(self):
@@ -33,8 +27,18 @@ class Robot:
         self.distance = self.camera.get_distance()
         self.angle = self.camera.get_angle()
         
+        try:
+            self.ser = serial.Serial(RECEIVER, BAUD_RATE, timeout=3)
+        except serial.serialutil.SerialException:
+            # BISMILLAH DONT THROW ERROR
+            self.ser = None
+            pass
+
+        if type(self.ser) != serial.Serial:
+            return
+        
         if self.distance and self.angle:
-            self.send(self.distance, self.angle)
+            self.send(self.distance, -degrees(self.angle))
         # print(f"Distance: {str(self.distance): <16} Angle: {str(self.angle): <16}")
         
         self.tick += 1

@@ -9,14 +9,14 @@
         
         <div>
             <a href="{{ url_for('preview') }}" target="_self">Link to Video Feed</a>
-            <script src="{{ url_for('static', filename='client.js') }}"></script>
+            <!-- <script src="{{ url_for('static', filename='client.js') }}"></script> -->
         </div>
         
         <div class="box">
             <button id="preview-button" onclick="showPreview()">Show Preview</button>
             <span id="preview-frame">
                 <p id="fps">0 FPS</p>
-                <img id="preview-stream" />
+                <img id="preview-stream" src=""/>
                 <canvas id="preview" alt="Preview"></canvas>
                 <span style="display: flex;">
                     <input id="color-select" onclick="colorSelect();" type="checkbox">
@@ -37,8 +37,8 @@
                 <p id="angle-label">Estimated Angle: </p>
                 <p id="radius-label">Radius: </p>
             </span>
-            <p id="measure-label">Measure every 0.1s</p>
-            <input id="measure-slider" type="range" min=100 max=1000 value=100 />
+            <p id="measure-label">Measure every 2s</p>
+            <input id="measure-slider" type="range" min=200 max=10000 value=2000 />
         </div>
         <div style="width: 50%;" class="box">
             <canvas id="field-display" alt="Field"></canvas>
@@ -63,6 +63,10 @@
             </div>
         </span>
         
+        <div class="box">
+            <h1>Circle Mask Radius</h1>
+            <input id="calibrate-circle-mask" type="text" value="35" />
+        </div>
         <span class="calibration-frame">
             <h1>Color Calibration</h1>
             <h2>Lower Bound</h2>

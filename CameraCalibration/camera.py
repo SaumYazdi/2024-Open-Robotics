@@ -17,12 +17,14 @@ from math import atan2, degrees, sqrt
 import numpy
 import colorsys
 
-# try:
-from picamera2 import Picamera2
-DEVICE = "pi"
-# except ImportError:
-    # from imutils.video import VideoStream
-    # DEVICE = "pc"
+import socket
+if socket.gethostname() == "0F00SG0224200C":
+    from imutils.video import VideoStream
+    DEVICE = "pc"
+else:
+    from picamera2 import Picamera2
+    DEVICE = "pi"
+
 print(f"Running camera on {('PC', 'Raspberry Pi')[int(DEVICE == 'pi')]}")
     
 
@@ -167,6 +169,10 @@ class Camera:
         self.image = None
         self.color_mask = None
         self.camera_center = camera_center
+        self.mask_radius = None
+        with open(save_path, "r") as f:
+            data = json.load(f)
+            self.mask_radius = data["maskRadius"]
 
         self.update_events = []
         
@@ -185,6 +191,12 @@ class Camera:
     def get_mask(self, frame):
         blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+
+        # Draw circle at camera's center to hide red-colour wiring
+        if self.mask_radius:
+            hsv = cv2.circle(hsv,
+                center=self.camera_center, radius=self.mask_radius,
+                color=(0, 0, 0), thickness=-1)
         
         # cv2.rectangle(hsv, (0, 0, 50, 50), self.hsv_lower, -1)
         # cv2.imshow("hsv", hsv)
@@ -216,6 +228,11 @@ class Camera:
         
         if self.draw_detections:
             cv2.drawMarker(frame, self.camera_center, (0, 255, 0))
+                
+            if self.mask_radius:
+                frame = cv2.circle(frame,
+                    center=self.camera_center, radius=self.mask_radius,
+                    color=(0, 255, 0), thickness=1)
                 
         if len(contours) > 0:
             
@@ -264,7 +281,10 @@ class Camera:
                     self.angle = -atan2(delta_pos[1], delta_pos[0])
                     self.radial_distance = sqrt(delta_pos[0]**2 + delta_pos[1]**2)
                     self.radius = size[0] * size[1]
-                    self.distance = get_dist(self.radius / self.radial_distance)
+                    try:
+                        self.distance = get_dist(self.radius / self.radial_distance)
+                    except PermissionError:
+                        pass
                     scale = size[0] * .006
                     
                     if self.draw_detections:
@@ -296,9 +316,9 @@ class Camera:
         return self.video_stream.capture_array()
     
     def _update(self):
-        start = perf_counter()
+        # start = perf_counter()
         frame = self.read()
-        print(f"'read frame' took {(perf_counter() - start) * 1000:.2f}ms")
+        # print(f"'read frame' took {(perf_counter() - start) * 1000:.2f}ms")
         
         if frame is None:
             return
@@ -308,9 +328,7 @@ class Camera:
         if type(RESIZE_WIDTH) == int:
             frame = imutils.resize(frame, width=RESIZE_WIDTH)
         
-        start = perf_counter()
         frame = self.compute(frame)
-        print(f"'compute frame' took {(perf_counter() - start) * 1000:.2f}ms")
 
         if self.preview == True:
             cv2.imshow(self.window_name, frame)
@@ -356,7 +374,10 @@ class Camera:
                 break
 
             for event in self.update_events:
-                event()
+                try:
+                    event()
+                except Exception as exc: # Praying that the robot does not stop during gameplay
+                    print(exc)
             
             ticks += 1
 
