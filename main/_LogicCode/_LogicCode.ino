@@ -18,7 +18,7 @@ float anglePolynomial(float x) {
 }
 
 // Polynomial function for distance
-float distancePolynomial(x) {
+float distancePolynomial(float x) {
   return (-0.0005 * powf(x, 2)) + 
          (0.015 * x) + 1;
 }
