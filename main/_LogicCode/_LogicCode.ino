@@ -27,6 +27,11 @@ char data[4];
 
 float distance = 0;
 float angle = 0;
+float heading = 0;
+
+int switchDown = 13;
+int switchMiddle = 12;
+int switchUp = 11;
 
 // Polynomial function for angle
 float anglePolynomial(float x) {
@@ -60,7 +65,7 @@ float calculateFinalDirection( float distance) {
   return scaledAngle;
 }
 
-void moveRobot(float angle, float rotation) {
+void moveRobot(float angle, float rotation, int targetSpeed = 90000000) {
 
   // Convert angle to radians
   float rad = (angle - 45) * (PI / 180.0);
@@ -75,7 +80,6 @@ void moveRobot(float angle, float rotation) {
   float maxRawSpeed = max(max(abs(speedY1), abs(speedX2)), max(abs(speedY3),abs(speedX4)));
 
   // Scale factor to ensure the largest motor speed is at maxspeed
-  float targetSpeed = 90000000;
   float scaleFactor = targetSpeed / maxRawSpeed;
 
   float rotationScaling = 100000;
@@ -93,7 +97,6 @@ void moveRobot(float angle, float rotation) {
   motor4.setSpeed(scaledSpeedX4);
 }
 
-
 // IMU Functions
 void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, bool degrees = false) {
   float sqr = sq(qr);
@@ -101,7 +104,8 @@ void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, boo
   float sqj = sq(qj);
   float sqk = sq(qk);
 
- ypr->yaw = atan2(2.0 * (qi * qj + qk * qr), (sqi - sqj - sqk + sqr));
+  ypr->yaw = atan2(2.0 * (qi * qj + qk * qr), (sqi - sqj - sqk + sqr));
+  
   if (degrees) {
     ypr->yaw *= RAD_TO_DEG;
   }
@@ -122,80 +126,6 @@ float bytesToFloat(uint8_t *bytes) {
   float f;
   memcpy(&f, bytes, 4);
   return f;
-}
-
-void setup() {
-  Wire.setSCL(9);
-  Wire.setSDA(8);
-  // Serial.begin(115200); 
-  Wire.begin(); 
-  Wire.setClock(1000000);
-
-  // Pi5 Serial
-  Serial.begin(9600);
-
-  // Initialize motors with calibration values
-  motor1.begin(25, &Wire);
-  motor1.setCurrentLimitFOC(65536 * 2);
-  motor1.setIdPidConstants(1500, 200); 
-  motor1.setIqPidConstants(1500, 200);
-  motor1.setSpeedPidConstants(4e-2, 4e-4, 3e-2); 
-  motor1.setELECANGLEOFFSET(1510395136); 
-  motor1.setSINCOSCENTRE(1251); 
-  motor1.configureOperatingModeAndSensor(3, 1); 
-  motor1.configureCommandMode(12); 
-
-  motor2.begin(27, &Wire);
-  motor2.setCurrentLimitFOC(65536 * 2); 
-  motor2.setIdPidConstants(1500, 200); 
-  motor2.setIqPidConstants(1500, 200);
-  motor2.setSpeedPidConstants(4e-2, 4e-4, 3e-2); 
-  motor2.setELECANGLEOFFSET(1480679936); 
-  motor2.setSINCOSCENTRE(1251); 
-  motor2.configureOperatingModeAndSensor(3, 1); 
-  motor2.configureCommandMode(12); 
-
-  motor3.begin(28, &Wire);
-  motor3.setCurrentLimitFOC(65536 * 2); 
-  motor3.setIdPidConstants(1500, 200); 
-  motor3.setIqPidConstants(1500, 200);
-  motor3.setSpeedPidConstants(4e-2, 4e-4, 3e-2); 
-  motor3.setELECANGLEOFFSET(1315084800); 
-  motor3.setSINCOSCENTRE(1224); 
-  motor3.configureOperatingModeAndSensor(3, 1); 
-  motor3.configureCommandMode(12); 
-
-  motor4.begin(26, &Wire);
-  motor4.setCurrentLimitFOC(65536 * 2); 
-  motor4.setIdPidConstants(1500, 200); 
-  motor4.setIqPidConstants(1500, 200);
-  motor4.setSpeedPidConstants(4e-2, 4e-4, 3e-2); 
-  motor4.setELECANGLEOFFSET(1697132032); 
-  motor4.setSINCOSCENTRE(1235); 
-  motor4.configureOperatingModeAndSensor(3, 1); 
-  motor4.configureCommandMode(12); 
-
-  motor5.begin(30, &Wire);
-  motor5.setCurrentLimitFOC(65536*2);
-  motor5.setIdPidConstants(1500, 200); 
-  motor5.setIqPidConstants(1500, 200);
-  motor5.setSpeedPidConstants(4e-2, 4e-4, 3e-2);
-  motor5.setELECANGLEOFFSET(1467193856);
-  motor5.setSINCOSCENTRE(1239);
-  motor5.configureOperatingModeAndSensor(3, 1);
-  motor5.configureCommandMode(12);
-
-  // Initialize IMU
-  Wire1.setSDA(18);
-  Wire1.setSCL(19);
-  Wire1.begin();
-  if (!bno08x.begin_I2C(BNO08x_I2CADDR_DEFAULT, &Wire1)) {
-    Serial.println("Failed to find BNO08x chip");
-    while (1) {}
-  }
-  setReports(SH2_ARVR_STABILIZED_RV, 5000); // Set report for IMU
-
-  delay(500);
 }
 
 bool readBall() {
@@ -219,30 +149,158 @@ bool readBall() {
   return false;
 }
 
-
-void loop() {
-
-  readBall();
-
+void readIMU() {
   if (bno08x.getSensorEvent(&sensorValue)) {
-    // Serial.println("debug 2");
-
     if (sensorValue.sensorId == SH2_ARVR_STABILIZED_RV) {
-      // Serial.println("debug 3");
       // Convert quaternion to yaw
       quaternionToEulerRV(&sensorValue.un.arvrStabilizedRV, &ypr, true);
     }
   }
+}
 
-  float finalDirection = calculateFinalDirection(distance);
+void setup() {
+  Wire.setSCL(9);
+  Wire.setSDA(8);
+  // Serial.begin(115200);
+  Wire.begin(); 
+  Wire.setClock(1000000);
 
-  Serial.println(ypr.yaw);
+  // Pi5 Serial
+  Serial.begin(9600);
+
+  // Initialize motors with calibration values
+  Serial.print("Motor 1:");
+  Serial.println(motor1.begin(25, &Wire));
+  motor1.setCurrentLimitFOC(65536 * 2);
+  motor1.setIdPidConstants(1500, 200); 
+  motor1.setIqPidConstants(1500, 200);
+  motor1.setSpeedPidConstants(4e-2, 4e-4, 3e-2); 
+  motor1.setELECANGLEOFFSET(1510395136); 
+  motor1.setSINCOSCENTRE(1251); 
+  motor1.configureOperatingModeAndSensor(3, 1); 
+  motor1.configureCommandMode(12); 
+
+  Serial.print("Motor 2:");
+  Serial.println(motor2.begin(27, &Wire));
+  motor2.setCurrentLimitFOC(65536 * 2); 
+  motor2.setIdPidConstants(1500, 200); 
+  motor2.setIqPidConstants(1500, 200);
+  motor2.setSpeedPidConstants(4e-2, 4e-4, 3e-2); 
+  motor2.setELECANGLEOFFSET(1480679936); 
+  motor2.setSINCOSCENTRE(1251); 
+  motor2.configureOperatingModeAndSensor(3, 1); 
+  motor2.configureCommandMode(12); 
+
+  Serial.print("Motor 3:");
+  Serial.println(motor3.begin(28, &Wire));
+  motor3.setCurrentLimitFOC(65536 * 2); 
+  motor3.setIdPidConstants(1500, 200); 
+  motor3.setIqPidConstants(1500, 200);
+  motor3.setSpeedPidConstants(4e-2, 4e-4, 3e-2); 
+  motor3.setELECANGLEOFFSET(1315084800); 
+  motor3.setSINCOSCENTRE(1224); 
+  motor3.configureOperatingModeAndSensor(3, 1); 
+  motor3.configureCommandMode(12); 
+
+  Serial.print("Motor 4:");
+  Serial.println(motor4.begin(26, &Wire));
+  motor4.setCurrentLimitFOC(65536 * 2); 
+  motor4.setIdPidConstants(1500, 200); 
+  motor4.setIqPidConstants(1500, 200);
+  motor4.setSpeedPidConstants(4e-2, 4e-4, 3e-2); 
+  motor4.setELECANGLEOFFSET(1697132032); 
+  motor4.setSINCOSCENTRE(1235); 
+  motor4.configureOperatingModeAndSensor(3, 1); 
+  motor4.configureCommandMode(12); 
+
+  Serial.print("Motor 5:");
+  Serial.println(motor5.begin(30, &Wire));
+  motor5.setCurrentLimitFOC(65536*2);
+  motor5.setIdPidConstants(1500, 200); 
+  motor5.setIqPidConstants(1500, 200);
+  motor5.setSpeedPidConstants(4e-2, 4e-4, 3e-2);
+  motor5.setELECANGLEOFFSET(1467193856);
+  motor5.setSINCOSCENTRE(1239);
+  motor5.configureOperatingModeAndSensor(3, 1);
+  motor5.configureCommandMode(12);
+
+  // Initialize IMU
+  Wire1.setSDA(18);
+  Wire1.setSCL(19);
+  Wire1.begin();
+  
+  while (!bno08x.begin_I2C(BNO08x_I2CADDR_DEFAULT, &Wire1)) {
+    Serial.println("Waiting for IMU...");
+  }
+  setReports(SH2_ARVR_STABILIZED_RV, 5000); // Set report for IMU
+
+  pinMode(switchDown,INPUT_PULLDOWN);
+  pinMode(switchMiddle,OUTPUT);
+  pinMode(switchUp,INPUT_PULLDOWN);
+
+  delay(500);
+
+  readIMU();
+
+  heading = ypr.yaw;
+}
+
+float threeSixty = static_cast<float>(360);
+
+void stop() {
+  motor1.setSpeed(0);
+  motor2.setSpeed(0);
+  motor3.setSpeed(0);
+  motor4.setSpeed(0);
+  motor5.setSpeed(0);
+}
+
+void calibrate () {
+  readIMU();
+
+  heading = ypr.yaw;
+}
+
+void logic() {
+  // readBall();
+  readIMU();
+
+  float correction = fmod(ypr.yaw - heading + 360, threeSixty);
+
+  if (correction > 180) {
+    correction -= 360;
+  }
+
+  // float finalDirection = calculateFinalDirection(distance);
+
+  Serial.println(correction);
 
   // Set motor speeds based on the final direction
-  moveRobot(finalDirection, ypr.yaw);
+  // moveRobot(0, correction);
 
   // Dribble
   motor5.setSpeed(90000000);
-  
+}
+
+void loop() {
+
+  digitalWrite(switchMiddle,HIGH);
+
+  if (digitalRead(switchDown)) {
+    Serial.println("Down");
+
+    calibrate();
+  }
+  else if (digitalRead(switchUp)) {
+    Serial.println("Up");
+
+    logic();
+  }
+  else {
+    Serial.println("Middle");
+
+    stop();
+  }
+
   delay(1); // Adjust delay as needed
 }
