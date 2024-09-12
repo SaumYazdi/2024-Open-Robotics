@@ -12,8 +12,44 @@ struct euler_t {
   float yaw;
 } ypr;
 
+class SteelBarToF {
+  private:
+    uint8_t address;
+    TwoWire* wire;
+    int _read(bool wait) {
+      if (!wire) return 0;
+      while (1) {
+        wire->beginTransmission(address);
+        wire->write(0x10);
+        wire->endTransmission();
+        if (wire->requestFrom(address, 5)) {
+          uint8_t sequence = wire->read();
+          int distance = (wire->read() | ((int)wire->read() << 8) | ((int)wire->read() << 16) | ((int)wire->read() << 24));
+          bool changed = sequence != lastSequence;
+          lastSequence = sequence;
+          if (!wait || changed) {
+            return distance;
+          }
+        }
+        delayMicroseconds(10);
+      }
+      return 0;
+    };
+
+  public:
+    uint8_t lastSequence;
+    SteelBarToF() : wire(NULL), address(0x50), lastSequence(0) {};
+    SteelBarToF(uint8_t _address, TwoWire* _wire) : address(_address), wire(_wire), lastSequence(0) {};
+    int nextMeasurement() { return _read(true); };
+    int currentMeasurement() { return _read(false); };
+};
+
 Adafruit_BNO08x bno08x(BNO08X_RESET);
 sh2_SensorValue_t sensorValue;
+
+// Sensor objects for the eight ToF sensors
+SteelBarToF tofs[8];
+const int tofAddresses[8] = {0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57};
 
 PowerfulBLDCdriver motor1;
 PowerfulBLDCdriver motor2;
@@ -28,6 +64,8 @@ char data[4];
 float distance = 0;
 float angle = 0;
 float heading = 0;
+
+int distances[8];
 
 int switchDown = 13;
 int switchMiddle = 12;
@@ -158,15 +196,27 @@ void readIMU() {
   }
 }
 
+void readTOFs() {
+  for (int i = 0; i < 5; i++) {
+    distances[i] = tofs[i].nextMeasurement();
+    Serial.print("ToF ");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(distances[i]);
+  }
+}
+
 void setup() {
   Wire.setSCL(9);
   Wire.setSDA(8);
-  // Serial.begin(115200);
+  Serial.begin(115200);
   Wire.begin(); 
   Wire.setClock(1000000);
 
+  delay(1000);
+
   // Pi5 Serial
-  Serial.begin(9600);
+  // Serial.begin(9600);
 
   // Initialize motors with calibration values
   Serial.print("Motor 1:");
@@ -238,6 +288,11 @@ void setup() {
   pinMode(switchMiddle,OUTPUT);
   pinMode(switchUp,INPUT_PULLDOWN);
 
+  for (int i = 0; i < 5; i++) {
+    tofs[i] = SteelBarToF(tofAddresses[i], &Wire);
+    Serial.println(i);
+  }
+
   delay(500);
 
   readIMU();
@@ -264,6 +319,7 @@ void calibrate () {
 void logic() {
   // readBall();
   readIMU();
+  readTOFs();
 
   float correction = fmod(ypr.yaw - heading + 360, threeSixty);
 
@@ -276,10 +332,10 @@ void logic() {
   Serial.println(correction);
 
   // Set motor speeds based on the final direction
-  // moveRobot(0, correction);
+  moveRobot(0, correction * -5, 20000000);
 
   // Dribble
-  motor5.setSpeed(90000000);
+  motor5.setSpeed(50000000);
 }
 
 void loop() {
