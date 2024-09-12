@@ -1,12 +1,32 @@
 #include "Wire.h"
 #include "PowerfulBLDCdriver.h"
 #include <math.h>
+#include <Adafruit_BNO08x.h>
+
+// IMU setup
+#define BNO08X_CS 10
+#define BNO08X_INT 9
+#define BNO08X_RESET -1
+
+struct euler_t {
+  float yaw;
+} ypr;
+
+Adafruit_BNO08x bno08x(BNO08X_RESET);
+sh2_SensorValue_t sensorValue;
 
 PowerfulBLDCdriver motor1;
 PowerfulBLDCdriver motor2;
 PowerfulBLDCdriver motor3;
 PowerfulBLDCdriver motor4;
 PowerfulBLDCdriver motor5;
+
+const int NUM_BYTES = 8;
+int byteIndex = 0;
+char data[4];
+
+float distance = 0;
+float angle = 0;
 
 // Polynomial function for angle
 float anglePolynomial(float x) {
@@ -23,7 +43,7 @@ float distancePolynomial(float x) {
          (0.015 * x) + 1;
 }
 
-float calculateFinalDirection(float angle, float distance) {
+float calculateFinalDirection( float distance) {
   bool isNegative = angle < 0;  // Check if the angle is negative
 
   if (isNegative) {
@@ -73,6 +93,30 @@ void moveRobot(float angle, float rotation) {
   motor4.setSpeed(scaledSpeedX4);
 }
 
+
+// IMU Functions
+void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, bool degrees = false) {
+  float sqr = sq(qr);
+  float sqi = sq(qi);
+  float sqj = sq(qj);
+  float sqk = sq(qk);
+
+ ypr->yaw = atan2(2.0 * (qi * qj + qk * qr), (sqi - sqj - sqk + sqr));
+  if (degrees) {
+    ypr->yaw *= RAD_TO_DEG;
+  }
+}
+
+void quaternionToEulerRV(sh2_RotationVectorWAcc_t* rotational_vector, euler_t* ypr, bool degrees = false) {
+  quaternionToEuler(rotational_vector->real, rotational_vector->i, rotational_vector->j, rotational_vector->k, ypr, degrees);
+}
+
+void setReports(sh2_SensorId_t reportType, long report_interval) {
+  if (!bno08x.enableReport(reportType, report_interval)) {
+    Serial.println("Could not enable stabilized remote vector");
+  }
+}
+
 float bytesToFloat(uint8_t *bytes) {
   static_assert(sizeof(float) == 4, "Float size shuold be 4 bytes.");
   float f;
@@ -83,7 +127,7 @@ float bytesToFloat(uint8_t *bytes) {
 void setup() {
   Wire.setSCL(9);
   Wire.setSDA(8);
-  Serial.begin(115200); 
+  // Serial.begin(115200); 
   Wire.begin(); 
   Wire.setClock(1000000);
 
@@ -141,18 +185,20 @@ void setup() {
   motor5.configureOperatingModeAndSensor(3, 1);
   motor5.configureCommandMode(12);
 
+  // Initialize IMU
+  Wire1.setSDA(18);
+  Wire1.setSCL(19);
+  Wire1.begin();
+  if (!bno08x.begin_I2C(BNO08x_I2CADDR_DEFAULT, &Wire1)) {
+    Serial.println("Failed to find BNO08x chip");
+    while (1) {}
+  }
+  setReports(SH2_ARVR_STABILIZED_RV, 5000); // Set report for IMU
 
   delay(500);
 }
 
-const int NUM_BYTES = 8;
-int byteIndex = 0;
-char data[4];
-
-float distance = 0;
-float angle = 0;
-
-void readBall() {
+bool readBall() {
   if (Serial.available() > 0) {
     char recv = Serial.read();
     data[byteIndex] = recv;
@@ -166,17 +212,34 @@ void readBall() {
       uint8_t angleBytes[4] = {data[4], data[5], data[6], data[7]};
       angle = bytesToFloat(angleBytes);
     }
+    
+    return true;
   }
+
+  return false;
 }
+
 
 void loop() {
 
   readBall();
 
-  float finalDirection = calculateFinalDirection(angle, distance);
+  if (bno08x.getSensorEvent(&sensorValue)) {
+    // Serial.println("debug 2");
+
+    if (sensorValue.sensorId == SH2_ARVR_STABILIZED_RV) {
+      // Serial.println("debug 3");
+      // Convert quaternion to yaw
+      quaternionToEulerRV(&sensorValue.un.arvrStabilizedRV, &ypr, true);
+    }
+  }
+
+  float finalDirection = calculateFinalDirection(distance);
+
+  Serial.println(ypr.yaw);
 
   // Set motor speeds based on the final direction
-  moveRobot(angle, 0);
+  moveRobot(finalDirection, ypr.yaw);
 
   // Dribble
   motor5.setSpeed(90000000);
