@@ -80,8 +80,8 @@ int switchDown = 13;
 int switchMiddle = 12;
 int switchUp = 11;
 
-float x = 0.0;
-float y = 0.0;
+float robotX = 0.0;
+float robotY = 0.0;
 
 struct Point {
   double x, y;
@@ -104,11 +104,11 @@ std::vector<Wall> walls = {
 
 // Polynomial function for angle
 float anglePolynomial(float x) {
-  return (-0.00000002124 * powf(x, 5)) + 
-         (0.000008243 * powf(x, 4)) - 
-         (0.0009351 * powf(x, 3)) + 
-         (0.01556 * powf(x, 2)) + 
-         (3.204 * x) + 2.928;
+  return (-1.255e-08 * powf(x, 5)) + 
+         (4.299e-06 * powf(x, 4)) +
+         (0.0003639 * powf(x, 3)) + 
+         (0.01248 * powf(x, 2)) + 
+         (3.623 * x);
 }
 
 // Polynomial function for distance
@@ -117,7 +117,12 @@ float distancePolynomial(float x) {
          (0.015 * x) + 1;
 }
 
-float calculateFinalDirection( float distance) {
+float calculateFinalDirection() {
+
+  if (angle > 180) {
+    angle -= 360;
+  }
+
   bool isNegative = angle < 0;  // Check if the angle is negative
 
   if (isNegative) {
@@ -125,19 +130,20 @@ float calculateFinalDirection( float distance) {
   }
 
   float mappedAngle = anglePolynomial(angle);
-  float scaledAngle = mappedAngle * min(max(distancePolynomial(distance),0),1);
+  float scaledAngle = mappedAngle;
 
   if (isNegative) {
+    angle = -angle
     scaledAngle = -scaledAngle;  // Ensure the scaled angle is also negative
   }
 
   return scaledAngle;
 }
 
-void moveRobot(float angle, float rotation, int targetSpeed = 90000000) {
+void moveRobot(float direction, float rotation, int targetSpeed = 90000000) {
 
   // Convert angle to radians
-  float rad = (angle - 45) * RAD_TO_DEG;
+  float rad = (direction - 45) * DEG_TO_RAD;
 
   // Calculate motor speeds
   float speedY1 = -cosf(rad);
@@ -266,12 +272,12 @@ Point* lineIntersection(Point p1, Point p2, Point p3, Point p4) {
 
 double simulateToF(double tx, double ty, double heading_deg, double sensor_offset, double sensor_angle_deg) {
     // Convert heading and sensor angle to radians
-    double heading_rad = heading_deg * RAD_TO_DEG;
-    double sensor_angle_rad = sensor_angle_deg * RAD_TO_DEG;
+    double heading_rad = heading_deg * DEG_TO_RAD;
+    double sensor_angle_rad = sensor_angle_deg * DEG_TO_RAD;
 
     // Calculate sensor's position based on robot's position and heading
-    double sensor_x = x + sensor_offset * cos(heading_rad);
-    double sensor_y = y + sensor_offset * sin(heading_rad);
+    double sensor_x = robotX + sensor_offset * cos(heading_rad);
+    double sensor_y = robotY + sensor_offset * sin(heading_rad);
 
     // Calculate the direction of the sensor's ray
     double ray_dir_x = cos(heading_rad + sensor_angle_rad);
@@ -325,8 +331,8 @@ void odometry(float direction) {
   float minError = 99999999; 
 
   for (int i = 0; i < 9; i++) {
-    float tempX = x - step * (i / 3 - 1);
-    float tempY = y - step * (i % 3 - 1);
+    float tempX = robotX - step * (i / 3 - 1);
+    float tempY = robotY - step * (i % 3 - 1);
 
     simulate(tempX,tempY,direction);
 
@@ -344,22 +350,19 @@ void odometry(float direction) {
     }
   }
 
-  x = mx;
-  y = my;
+  robotX = mx;
+  robotY = my;
 }
 
 void setup() {
   Wire.setSCL(9);
   Wire.setSDA(8);
-  // Serial.begin(115200);
+  Serial.begin(115200);
   Wire.begin(); 
   Wire.setClock(1000000);
 
   delay(1000);
-
-  // Pi5 Serial
-  Serial.begin(9600);
-
+  
   // Initialize motors with calibration values
   Serial.print("Motor 1:");
   Serial.println(motor1.begin(25, &Wire));
@@ -435,7 +438,12 @@ void setup() {
     Serial.println(i);
   }
 
+  Serial.end();
+
   delay(500);
+
+  // Pi5 Serial
+  Serial.begin(9600);
 
   readIMU();
 
@@ -460,7 +468,7 @@ void calibrate () {
 
 void logic() {
 
-  readBall();
+  bool seesBall = readBall();
   readIMU();
   // readTOFs();
 
@@ -470,16 +478,26 @@ void logic() {
     correction -= 360;
   }
 
-  float finalDirection = calculateFinalDirection(distance);
-
-  Serial.println(angle);
-  Serial.println(finalDirection);
-  Serial.println(correction);
-
   // odometry(correction);
 
+  
+  float finalDirection = calculateFinalDirection();
+
+  // Serial.println(angle);
+  // Serial.println(finalDirection);
+  // Serial.println(correction);
+
+  float speed;
+
+  if (seesBall) {
+    speed = 80000000;
+  }
+  else {
+    speed = 0;
+  }
+
   // Set motor speeds based on the final direction
-  moveRobot(finalDirection, correction * -5);
+  moveRobot(finalDirection, correction * -5, speed);
 
   // Dribble
   motor5.setSpeed(90000000);
@@ -490,20 +508,20 @@ void loop() {
   digitalWrite(switchMiddle,HIGH);
 
   if (digitalRead(switchDown)) {
-    Serial.println("Down");
+    // Serial.println("Down");
 
     calibrate();
   }
   else if (digitalRead(switchUp)) {
-    Serial.println("Up");
+    // Serial.println("Up");
 
     logic();
   }
   else {
-    Serial.println("Middle");
+    // Serial.println("Middle");
 
     stop();
   }
 
-  delay(1); // Adjust delay as needed
+  // delay(1); // Adjust delay as needed
 }
