@@ -104,10 +104,10 @@ std::vector<Wall> walls = {
 
 // Polynomial function for angle
 float anglePolynomial(float x) {
-  return (-1.255e-08 * powf(x, 5)) + 
-         (4.299e-06 * powf(x, 4)) +
-         (0.0003639 * powf(x, 3)) + 
-         (0.01248 * powf(x, 2)) + 
+  return (-0.00000001255 * powf(x, 5)) + 
+         (0.000004299 * powf(x, 4)) +
+         (-0.0003639 * powf(x, 3)) + 
+         (-0.01248 * powf(x, 2)) + 
          (3.623 * x);
 }
 
