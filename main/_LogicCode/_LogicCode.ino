@@ -1,6 +1,9 @@
 #include "Wire.h"
 #include "PowerfulBLDCdriver.h"
 #include <math.h>
+#include <vector>
+#include <cmath>
+#include <limits>
 #include <Adafruit_BNO08x.h>
 
 // IMU setup
@@ -51,6 +54,12 @@ sh2_SensorValue_t sensorValue;
 SteelBarToF tofs[8];
 const int tofAddresses[8] = {0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57};
 
+int tofOffset = 100;
+double tofAngles[8] = { -33.5, -68.5, -113.5, -158.5, 158.5, 113.5, 68.5, 33.5 };
+
+const double FIELD_WIDTH = 1820.0;
+const double FIELD_HEIGHT = 2430.0;
+
 PowerfulBLDCdriver motor1;
 PowerfulBLDCdriver motor2;
 PowerfulBLDCdriver motor3;
@@ -70,6 +79,28 @@ int distances[8];
 int switchDown = 13;
 int switchMiddle = 12;
 int switchUp = 11;
+
+float x = 0.0;
+float y = 0.0;
+
+struct Point {
+  double x, y;
+};
+
+struct Wall {
+  Point p1, p2;
+};
+
+float step = 100.0;
+
+int simDistances[8] = {0,0,0,0,0,0,0,0};
+
+std::vector<Wall> walls = {
+    {{0, 0}, {FIELD_WIDTH, 0}},           // Top wall
+    {{0, 0}, {0, FIELD_HEIGHT}},          // Left wall
+    {{FIELD_WIDTH, 0}, {FIELD_WIDTH, FIELD_HEIGHT}},  // Right wall
+    {{0, FIELD_HEIGHT}, {FIELD_WIDTH, FIELD_HEIGHT}}  // Bottom wall
+};
 
 // Polynomial function for angle
 float anglePolynomial(float x) {
@@ -94,7 +125,7 @@ float calculateFinalDirection( float distance) {
   }
 
   float mappedAngle = anglePolynomial(angle);
-  float scaledAngle = mappedAngle * max(distancePolynomial(distance),0);
+  float scaledAngle = mappedAngle * min(max(distancePolynomial(distance),0),1);
 
   if (isNegative) {
     scaledAngle = -scaledAngle;  // Ensure the scaled angle is also negative
@@ -106,7 +137,7 @@ float calculateFinalDirection( float distance) {
 void moveRobot(float angle, float rotation, int targetSpeed = 90000000) {
 
   // Convert angle to radians
-  float rad = (angle - 45) * (PI / 180.0);
+  float rad = (angle - 45) * RAD_TO_DEG;
 
   // Calculate motor speeds
   float speedY1 = -cosf(rad);
@@ -206,17 +237,128 @@ void readTOFs() {
   }
 }
 
+Point* lineIntersection(Point p1, Point p2, Point p3, Point p4) {
+    double x1 = p1.x, y1 = p1.y;
+    double x2 = p2.x, y2 = p2.y;
+    double x3 = p3.x, y3 = p3.y;
+    double x4 = p4.x, y4 = p4.y;
+
+    // Calculate the determinant (denominator)
+    double denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+    if (denom == 0) {
+        // Lines are parallel or coincident
+        return nullptr;
+    }
+
+    // Calculate intersection point
+    double intersect_x = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
+    double intersect_y = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
+
+    // Check if the intersection is within both line segments
+    if (min(x1, x2) <= intersect_x && intersect_x <= max(x1, x2) &&
+        min(y1, y2) <= intersect_y && intersect_y <= max(y1, y2) &&
+        min(x3, x4) <= intersect_x && intersect_x <= max(x3, x4) &&
+        min(y3, y4) <= intersect_y && intersect_y <= max(y3, y4)) {
+        return new Point{intersect_x, intersect_y};
+    }
+    return nullptr;
+}
+
+double simulateToF(double tx, double ty, double heading_deg, double sensor_offset, double sensor_angle_deg) {
+    // Convert heading and sensor angle to radians
+    double heading_rad = heading_deg * RAD_TO_DEG;
+    double sensor_angle_rad = sensor_angle_deg * RAD_TO_DEG;
+
+    // Calculate sensor's position based on robot's position and heading
+    double sensor_x = x + sensor_offset * cos(heading_rad);
+    double sensor_y = y + sensor_offset * sin(heading_rad);
+
+    // Calculate the direction of the sensor's ray
+    double ray_dir_x = cos(heading_rad + sensor_angle_rad);
+    double ray_dir_y = sin(heading_rad + sensor_angle_rad);
+
+    // Set a large distance to simulate an "infinite" ray
+    double max_distance = max(FIELD_WIDTH, FIELD_HEIGHT) * 2;
+    double ray_end_x = sensor_x + ray_dir_x * max_distance;
+    double ray_end_y = sensor_y + ray_dir_y * max_distance;
+
+    // Find the closest intersection point with the walls
+    double closest_distance = 999999999;
+    Point* closest_intersection = nullptr;
+
+    for (const auto& wall : walls) {
+        Point* intersection = lineIntersection(Point{sensor_x, sensor_y}, Point{ray_end_x, ray_end_y}, wall.p1, wall.p2);
+        if (intersection) {
+            double distance = sqrt((intersection->x - sensor_x) * (intersection->x - sensor_x) +
+                                  (intersection->y - sensor_y) * (intersection->y - sensor_y));
+            if (distance < closest_distance) {
+                closest_distance = distance;
+                delete closest_intersection;
+                closest_intersection = intersection;
+            } else {
+                delete intersection;
+            }
+        }
+    }
+
+    // Return the distance to the closest intersection (ToF reading)
+    if (closest_intersection) {
+      delete closest_intersection;
+      return closest_distance;
+    }
+
+    // If no intersection is found, return a maximum range value
+    return max_distance;
+}
+
+void simulate(float tempX, float tempY, float direction) {
+  for (int i = 0; i < 5; i++) {
+    simDistances[i] = simulateToF(tempX, tempY, direction, tofOffset, tofAngles[i]);
+  }
+}
+
+void odometry(float direction) {
+  
+  float mx = 0.0;
+  float my = 0.0;
+
+  float minError = 99999999; 
+
+  for (int i = 0; i < 9; i++) {
+    float tempX = x - step * (i / 3 - 1);
+    float tempY = y - step * (i % 3 - 1);
+
+    simulate(tempX,tempY,direction);
+
+    float error = 0;
+
+    for (int i = 0; i < 5; i++) {
+      error += abs(simDistances[i] - distances[i]);
+    }
+
+    if (error < minError) {
+      mx = tempX;
+      my = tempY;
+
+      minError = error;
+    }
+  }
+
+  x = mx;
+  y = my;
+}
+
 void setup() {
   Wire.setSCL(9);
   Wire.setSDA(8);
-  Serial.begin(115200);
+  // Serial.begin(115200);
   Wire.begin(); 
   Wire.setClock(1000000);
 
   delay(1000);
 
   // Pi5 Serial
-  // Serial.begin(9600);
+  Serial.begin(9600);
 
   // Initialize motors with calibration values
   Serial.print("Motor 1:");
@@ -317,9 +459,10 @@ void calibrate () {
 }
 
 void logic() {
-  // readBall();
+
+  readBall();
   readIMU();
-  readTOFs();
+  // readTOFs();
 
   float correction = fmod(ypr.yaw - heading + 360, threeSixty);
 
@@ -327,15 +470,19 @@ void logic() {
     correction -= 360;
   }
 
-  // float finalDirection = calculateFinalDirection(distance);
+  float finalDirection = calculateFinalDirection(distance);
 
+  Serial.println(angle);
+  Serial.println(finalDirection);
   Serial.println(correction);
 
+  // odometry(correction);
+
   // Set motor speeds based on the final direction
-  moveRobot(0, correction * -5, 20000000);
+  moveRobot(finalDirection, correction * -5);
 
   // Dribble
-  motor5.setSpeed(50000000);
+  motor5.setSpeed(90000000);
 }
 
 void loop() {
