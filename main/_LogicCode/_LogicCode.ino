@@ -119,21 +119,22 @@ float distancePolynomial(float x) {
 
 float calculateFinalDirection() {
 
-  if (angle > 180) {
-    angle -= 360;
+  float tempAngle = angle;
+
+  if (tempAngle > 180) {
+    tempAngle -= 360;
   }
 
-  bool isNegative = angle < 0;  // Check if the angle is negative
+  bool isNegative = tempAngle < 0;  // Check if the angle is negative
 
   if (isNegative) {
-    angle = -angle;  // Make the angle positive
+    tempAngle = -tempAngle;  // Make the angle positive
   }
 
-  float mappedAngle = anglePolynomial(angle);
+  float mappedAngle = anglePolynomial(tempAngle);
   float scaledAngle = mappedAngle;
 
   if (isNegative) {
-    angle = -angle
     scaledAngle = -scaledAngle;  // Ensure the scaled angle is also negative
   }
 
@@ -472,6 +473,8 @@ void logic() {
   readIMU();
   // readTOFs();
 
+  bool hasBall = distance < 20;
+
   float correction = fmod(ypr.yaw - heading + 360, threeSixty);
 
   if (correction > 180) {
@@ -479,25 +482,27 @@ void logic() {
   }
 
   // odometry(correction);
-
   
-  float finalDirection = calculateFinalDirection();
-
   // Serial.println(angle);
   // Serial.println(finalDirection);
   // Serial.println(correction);
 
-  float speed;
-
   if (seesBall) {
-    speed = 80000000;
+    if (hasBall) {
+      moveRobot(-correction, correction * -5, 90000000);
+    }
+    else {
+      moveRobot(calculateFinalDirection(), 0, 90000000);
+    }
   }
   else {
-    speed = 0;
+    if (angle > 0) {
+      moveRobot(0, -100, 0);
+    }
+    else {
+      moveRobot(0, 100, 0);
+    }
   }
-
-  // Set motor speeds based on the final direction
-  moveRobot(finalDirection, correction * -5, speed);
 
   // Dribble
   motor5.setSpeed(90000000);
