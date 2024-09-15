@@ -104,17 +104,36 @@ std::vector<Wall> walls = {
 
 // Polynomial function for angle
 float anglePolynomial(float x) {
-  return (-0.00000001255 * powf(x, 5)) + 
-         (0.000004299 * powf(x, 4)) +
-         (-0.0003639 * powf(x, 3)) + 
-         (-0.01248 * powf(x, 2)) + 
-         (3.623 * x);
+
+  float newAngle = abs(x);
+
+  int n = 1;
+
+  if (x < 0) {n = -1;}
+
+  if (newAngle < 5) { return 0 * n; }
+  else if (newAngle < 15) { return 25 * n; }
+  else if (newAngle < 25) { return 35 * n; }
+  else if (newAngle < 35) { return 45 * n; }
+  else if (newAngle < 45) { return 60 * n; }
+  else if (newAngle < 60) { return 100 * n; }
+  else if (newAngle < 90) { return 180 * n; }
+  else if (newAngle < 115) { return 200 * n; }
+  else if (newAngle < 135) { return 220 * n; }
+  else if (newAngle < 160) { return 250 * n; }
+  else if (newAngle < 180) { return 270 * n; }
+
+  return (0.00000001184 * powf(x, 5)) + 
+         (-0.000005165 * powf(x, 4)) +
+         (0.000804 * powf(x, 3)) + 
+         (-0.05637 * powf(x, 2)) +
+         (3.243 * x);
 }
 
 // Polynomial function for distance
 float distancePolynomial(float x) {
-  return (-0.0005 * powf(x, 2)) + 
-         (0.015 * x) + 1;
+  return (-0.0003651 * powf(x, 2)) + 
+         (-0.0004762 * x) + 1.343;
 }
 
 float calculateFinalDirection() {
@@ -127,18 +146,22 @@ float calculateFinalDirection() {
 
   bool isNegative = tempAngle < 0;  // Check if the angle is negative
 
-  if (isNegative) {
-    tempAngle = -tempAngle;  // Make the angle positive
-  }
-
-  float mappedAngle = anglePolynomial(tempAngle);
-  float scaledAngle = mappedAngle;
+  float unscaledAngle;
 
   if (isNegative) {
-    scaledAngle = -scaledAngle;  // Ensure the scaled angle is also negative
+    unscaledAngle = -anglePolynomial(-tempAngle);
+  } else {
+    unscaledAngle = anglePolynomial(tempAngle);
   }
 
-  return scaledAngle;
+  float scalar;
+  if (distance > 30 && (angle > -140 && angle < 140)) {
+    scalar = 0;
+  } else {
+    scalar = 1;
+  } //= min(max(distancePolynomial(distance),0),1);
+
+  return tempAngle + (unscaledAngle - tempAngle) * scalar;
 }
 
 void moveRobot(float direction, float rotation, int targetSpeed = 90000000) {
@@ -237,10 +260,6 @@ void readIMU() {
 void readTOFs() {
   for (int i = 0; i < 5; i++) {
     distances[i] = tofs[i].nextMeasurement();
-    Serial.print("ToF ");
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.println(distances[i]);
   }
 }
 
@@ -358,15 +377,13 @@ void odometry(float direction) {
 void setup() {
   Wire.setSCL(9);
   Wire.setSDA(8);
-  Serial.begin(115200);
   Wire.begin(); 
   Wire.setClock(1000000);
 
   delay(1000);
   
   // Initialize motors with calibration values
-  Serial.print("Motor 1:");
-  Serial.println(motor1.begin(25, &Wire));
+  motor1.begin(25, &Wire);
   motor1.setCurrentLimitFOC(65536 * 2);
   motor1.setIdPidConstants(1500, 200); 
   motor1.setIqPidConstants(1500, 200);
@@ -376,8 +393,7 @@ void setup() {
   motor1.configureOperatingModeAndSensor(3, 1); 
   motor1.configureCommandMode(12); 
 
-  Serial.print("Motor 2:");
-  Serial.println(motor2.begin(27, &Wire));
+  motor2.begin(27, &Wire);
   motor2.setCurrentLimitFOC(65536 * 2); 
   motor2.setIdPidConstants(1500, 200); 
   motor2.setIqPidConstants(1500, 200);
@@ -387,8 +403,7 @@ void setup() {
   motor2.configureOperatingModeAndSensor(3, 1); 
   motor2.configureCommandMode(12); 
 
-  Serial.print("Motor 3:");
-  Serial.println(motor3.begin(28, &Wire));
+  motor3.begin(28, &Wire);
   motor3.setCurrentLimitFOC(65536 * 2); 
   motor3.setIdPidConstants(1500, 200); 
   motor3.setIqPidConstants(1500, 200);
@@ -398,8 +413,7 @@ void setup() {
   motor3.configureOperatingModeAndSensor(3, 1); 
   motor3.configureCommandMode(12); 
 
-  Serial.print("Motor 4:");
-  Serial.println(motor4.begin(26, &Wire));
+  motor4.begin(26, &Wire);
   motor4.setCurrentLimitFOC(65536 * 2); 
   motor4.setIdPidConstants(1500, 200); 
   motor4.setIqPidConstants(1500, 200);
@@ -409,8 +423,7 @@ void setup() {
   motor4.configureOperatingModeAndSensor(3, 1); 
   motor4.configureCommandMode(12); 
 
-  Serial.print("Motor 5:");
-  Serial.println(motor5.begin(30, &Wire));
+  motor5.begin(30, &Wire);
   motor5.setCurrentLimitFOC(65536*2);
   motor5.setIdPidConstants(1500, 200); 
   motor5.setIqPidConstants(1500, 200);
@@ -427,6 +440,7 @@ void setup() {
   
   while (!bno08x.begin_I2C(BNO08x_I2CADDR_DEFAULT, &Wire1)) {
     Serial.println("Waiting for IMU...");
+    delay(10);
   }
   setReports(SH2_ARVR_STABILIZED_RV, 5000); // Set report for IMU
 
@@ -436,7 +450,6 @@ void setup() {
 
   for (int i = 0; i < 5; i++) {
     tofs[i] = SteelBarToF(tofAddresses[i], &Wire);
-    Serial.println(i);
   }
 
   Serial.end();
@@ -444,7 +457,7 @@ void setup() {
   delay(500);
 
   // Pi5 Serial
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   readIMU();
 
@@ -453,7 +466,13 @@ void setup() {
 
 float threeSixty = static_cast<float>(360);
 
+int kickoffTicks = 0;
+
 void stop() {
+  bool seesBall = readBall();
+
+  kickoffTicks = 0;
+
   motor1.setSpeed(0);
   motor2.setSpeed(0);
   motor3.setSpeed(0);
@@ -467,13 +486,15 @@ void calibrate () {
   heading = ypr.yaw;
 }
 
+int lostTicks = 0;
+
 void logic() {
 
   bool seesBall = readBall();
   readIMU();
   // readTOFs();
 
-  bool hasBall = distance < 20;
+  bool hasBall = (distance < 20) && (-15 <= angle && angle <= 15);
 
   float correction = fmod(ypr.yaw - heading + 360, threeSixty);
 
@@ -487,25 +508,48 @@ void logic() {
   // Serial.println(finalDirection);
   // Serial.println(correction);
 
-  if (seesBall) {
+  if (kickoffTicks < 300) {
+    kickoffTicks += 1;
+    motor5.setSpeed(80000000);
+    moveRobot(0, correction * -15, 90000000);
+    return;
+  }
+
+  if (seesBall) { 
+    lostTicks = 0; 
+  } else {
+    lostTicks += 1;
+  }
+
+  if (lostTicks < 10) {
+
+    motor5.setSpeed(90000000);
+
     if (hasBall) {
-      moveRobot(-correction, correction * -5, 90000000);
-    }
-    else {
-      moveRobot(calculateFinalDirection(), 0, 90000000);
+      if (-30 < correction && correction < 30) {
+        moveRobot(correction, correction * -20, 60000000);
+      } else {
+        moveRobot(correction, correction * -10, 50000000);
+      }
+    } else if (distance < 30 && (angle < -90 || angle > 90)) {
+      moveRobot(calculateFinalDirection(), -5 * correction, 15000000);
+    } else if (distance < 30) {
+      moveRobot(calculateFinalDirection(), -5 * correction, 25000000);
+    } else {
+      moveRobot(calculateFinalDirection(), -5 * correction, 60000000);
     }
   }
   else {
+
+    motor5.setSpeed(0);
+
     if (angle > 0) {
-      moveRobot(0, -100, 0);
+      moveRobot(0, -200, 0);
     }
     else {
-      moveRobot(0, 100, 0);
+      moveRobot(0, 200, 0);
     }
   }
-
-  // Dribble
-  motor5.setSpeed(90000000);
 }
 
 void loop() {
@@ -528,5 +572,5 @@ void loop() {
     stop();
   }
 
-  // delay(1); // Adjust delay as needed
+  delay(1); // Adjust delay as needed
 }
