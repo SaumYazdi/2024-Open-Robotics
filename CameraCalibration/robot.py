@@ -2,7 +2,7 @@
 Main camera systems which will parse the ball location data to the main
 """
 
-from camera import Camera
+from camera import DownFacingCamera, FrontFacingCamera
 from math import degrees
 import serial
 import struct
@@ -16,16 +16,21 @@ class Robot:
     """
     distance = None
     angle = None
-    def __init__(self, camera: Camera):
-        self.camera = camera
-        self.camera.set_update(self.update)
+    def __init__(self, camera1: DownFacingCamera, camera2: FrontFacingCamera = None):
+        self.camera1 = camera1
+        self.camera2 = camera2
+
+        self.camera1.set_update(self.update)
         
         self.tick = 0
     
     def update(self):
         """System update loop. Updates the ball's distance and angle variables."""
-        self.distance = self.camera.get_distance()
-        self.angle = self.camera.get_angle()
+        self.distance = self.camera1.get_distance()
+        self.angle = self.camera1.get_angle()
+        if not (self.distance or self.angle) and self.camera2 is not None:
+            self.distance = self.camera2.get_distance()
+            self.angle = self.camera2.get_angle()
         
         try:
             self.ser = serial.Serial(RECEIVER, BAUD_RATE, timeout=3)
@@ -34,6 +39,7 @@ class Robot:
             self.ser = None
             pass
 
+        print(self.distance, self.angle)
         if type(self.ser) != serial.Serial:
             return
         
@@ -57,12 +63,13 @@ class Robot:
         """
         Start reading the camera and producing ball data.
         """
-        self.camera.start()
+        self.camera1.start()
         print("e")
         
 
 if __name__ == "__main__":
-    camera = Camera("Soccer Robot", preview=False, draw_detections=False)
+    camera1 = DownFacingCamera("360", preview=False, draw_detections=False, camera_port=0)
+    camera2 = FrontFacingCamera("Front", preview=False, draw_detections=False, camera_port=1)
     
-    robot = Robot(camera)
+    robot = Robot(camera1, camera2)
     robot.start()

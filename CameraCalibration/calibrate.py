@@ -4,7 +4,7 @@ Run this file 'calibrate.py' and access the control panel at <ipv4-address>:8080
 """
 
 from threading import Thread
-from camera import Camera
+from camera import DownFacingCamera, FrontFacingCamera
 from server import Server
 from fan import Fan
 
@@ -12,6 +12,7 @@ def update():
     """
     Update server values with ball measurements for calibration
     """
+
     if server is None:
         return
         
@@ -19,9 +20,10 @@ def update():
         server.x_offset = camera.pos.x
     else:
         server.x_offset = None
-        
+    
     server.radius = camera.radius
-    server.radial_distance = camera.radial_distance
+    if type(camera) == DownFacingCamera:
+        server.radial_distance = camera.radial_distance
     server.angle = camera.angle
     server.distance = camera.distance
 
@@ -35,7 +37,7 @@ def update():
         server.preview = camera.image.copy()
 
 if __name__ == "__main__":
-    camera = Camera("Ball Detector", preview=False, draw_detections=True)
+    camera = FrontFacingCamera("Ball Detector", preview=False, draw_detections=True)
     camera.set_update(update)
     server = Server(__name__)
 

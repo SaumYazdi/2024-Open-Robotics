@@ -319,11 +319,15 @@ class Server(Flask):
     def start(self):
         # Agg is a non-interactive backend.
         # Prevents the error when initialising a MPL figure.
-        mpluse("agg")
-        
-        # Disable console messages
-        if DEBUG == False:
-            log = logging.getLogger('werkzeug')
-            log.setLevel(logging.ERROR)
+        try:
+            mpluse("agg")
             
-        self.run(port=8080, host="0.0.0.0")
+            # Disable console messages
+            if DEBUG == False:
+                log = logging.getLogger('werkzeug')
+                log.setLevel(logging.ERROR)
+                
+            self.run(port=8080, host="0.0.0.0")
+            
+        except Exception as exc:
+            print(exc)
