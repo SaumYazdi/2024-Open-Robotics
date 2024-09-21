@@ -6,8 +6,6 @@ Usage:
                                 to the camera in radians.
 """
 
-from collections import deque
-import numpy as np
 import cv2
 import imutils
 from time import perf_counter, sleep
@@ -16,8 +14,8 @@ from classes import *
 from math import atan2, degrees, sqrt
 import numpy
 import colorsys
-
 import socket
+
 if socket.gethostname() == "0F00SG0224200C":
     from imutils.video import VideoStream
     DEVICE = "pc"
@@ -34,17 +32,13 @@ MAX_BALL_JUMP = 720 # If ball is detected, how close the new pos must be for it 
 BALL_TRACK_COLOUR = (0, 0, 0)
 MIN_RADIUS = 6
 
-BALL_DIAMETER = 6.9 #cm
-CALIBRATION_DISTANCE = 30 #cm
+BALL_DIAMETER = 6.9 # cm
+CALIBRATION_DISTANCE = 30 # cm
 
 if DEVICE == "pc":
-    # ORANGE_LOWER = (1, 114, 245)
-    # ORANGE_UPPER = (8, 203, 255)
     LERP_STEP = 0.4
     FPS_UPDATE = 120
 elif DEVICE == "pi":
-    # ORANGE_LOWER = (1, 235, 230)
-    # ORANGE_UPPER = (11, 255, 255)
     LERP_STEP = 0.8
     FPS_UPDATE = 24
 
@@ -149,7 +143,6 @@ class DownFacingCamera:
                 controls={'FrameRate': 60},
             )
             self.video_stream.configure(config)
-            # self.video_stream.set_controls({'HdrMode': controls.HdrModeEnum.SingleExposure})
             
         elif DEVICE == "pc":
             self.video_stream = VideoStream(src=0).start()
@@ -194,20 +187,25 @@ class DownFacingCamera:
         blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
-        if self.mode == DOWN_FACING_CAMERA:
-            # Draw circle at camera's center to hide red-colour wiring
-            if self.mask_radius:
-                hsv = cv2.circle(hsv,
-                    center=self.camera_center, radius=self.mask_radius,
-                    color=(0, 0, 0), thickness=-1)
+        skin = cv2.inRange(hsv, (0, 50, 150), (20, 150, 255))
+        skin = cv2.erode(skin, None, iterations=2)
+        skin = cv2.dilate(skin, None, iterations=2)
         
+        # Draw circle at camera's center to hide red-colour wiring
+        if self.mask_radius:
+            hsv = cv2.circle(hsv,
+                center=self.camera_center, radius=self.mask_radius,
+                color=(0, 0, 0), thickness=-1)
+                
         # cv2.rectangle(hsv, (0, 0, 50, 50), self.hsv_lower, -1)
         # cv2.imshow("hsv", hsv)
         mask = cv2.inRange(hsv, self.hsv_lower, self.hsv_upper)
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
         
-        return mask
+        filtered_mask = cv2.bitwise_and(mask, cv2.bitwise_not(skin))
+
+        return filtered_mask
 
     def get_distance(self):
         # if self.radius is None:
@@ -290,6 +288,7 @@ class DownFacingCamera:
                         pass
                     scale = size[0] * .006
                     
+                    # Draw contours, ellipse and center point
                     if self.draw_detections:
                         
                         for i in range(len(contours)):
@@ -298,19 +297,12 @@ class DownFacingCamera:
                         cv2.ellipse(frame, ellipse, (255, 255, 255), 1, cv2.LINE_AA)
                         cv2.drawMarker(frame, [int(center[0]), int(center[1])], (0, 255, 0))
                         
-                        # font = cv2.FONT_HERSHEY_SIMPLEX
-                        # text_pos = [int(self.pos.x - 140 * scale), int(self.pos.y - 25 * scale)]
-                        # thickness = 1
-                        # cv2.putText(frame, f"dist: {self.distance:.2f}cm", text_pos, font, scale, (230, 230, 230), thickness, cv2.LINE_AA)
-                        # cv2.putText(frame, f"angle: {self.angle:.2f} deg", (text_pos[0], int(text_pos[1] + 50 * scale)), font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
-
         else:
             self.pos = None
             self.radius = None
             self.distance = None
             self.angle = None
 
-        # self.points.appendleft(self.pos.int() if self.pos else None)
         return frame
     
     def read(self):
@@ -363,24 +355,26 @@ class DownFacingCamera:
         ticks = 1
         prev = perf_counter()
         while True:
-            if (ticks % FPS_UPDATE) == 0:
-                now = perf_counter()
-                dt = now - prev
-                prev = now
-                self.fps = FPS_UPDATE / dt 
+            # Praying that the robot does not stop during gameplay
+            try:
+                if (ticks % FPS_UPDATE) == 0:
+                    now = perf_counter()
+                    dt = now - prev
+                    prev = now
+                    self.fps = FPS_UPDATE / dt 
 
-                if self.preview:
-                    cv2.setWindowTitle(self.window_name, f"FPS: {self.fps}")
+                    if self.preview:
+                        cv2.setWindowTitle(self.window_name, f"FPS: {self.fps}")
 
-            self.image = self._update()
-            if self.image is None:
-                break
+                self.image = self._update()
+                if self.image is None:
+                    break
 
-            for event in self.update_events:
-                try:
+                for event in self.update_events:
                     event()
-                except Exception as exc: # Praying that the robot does not stop during gameplay
-                    print(exc)
+
+            except Exception as exc:
+                print(exc)
             
             ticks += 1
 
@@ -400,16 +394,16 @@ class FrontFacingCamera:
                 
         if DEVICE == "pi":
             self.video_stream = Picamera2(camera_port)
-            raw_config = self.video_stream.sensor_modes[5]
+            raw_config = CAMERA_SENSOR_MODES[1]
+            raw_config["fps"] = 60
             config = self.video_stream.create_video_configuration(
-                main={"format": 'XRGB8888', "size": [640//2, 480//2]},
+                main={"format": 'XRGB8888', "size": [640, 480]},
                 raw=raw_config,
-                buffer_count=2,
-                controls={'FrameRate': 144},
+                buffer_count=6,
+                controls={'FrameRate': 60},
             )
             self.video_stream.configure(config)
-            # self.video_stream.set_controls({'HdrMode': controls.HdrModeEnum.SingleExposure})
-            
+
         elif DEVICE == "pc":
             self.video_stream = VideoStream(src=0).start()
 
@@ -420,9 +414,7 @@ class FrontFacingCamera:
                 
         self.pos = None
         self.radius = None
-        # self.velocity = None
-        # self.points = deque(maxlen=BUFFER_SIZE)
-        
+
         self.distance = None
         self.angle = None
 
@@ -444,6 +436,7 @@ class FrontFacingCamera:
         
         self.color_mask = hsv.copy()
         
+        print(self.orange_upper)
         mask = cv2.inRange(hsv, self.orange_lower, self.orange_upper)
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
@@ -661,5 +654,5 @@ class FrontFacingCamera:
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    camera = FrontFacingCamera("Ball Detector", preview=True, draw_detections=True, camera_port=0)
+    camera = DownFacingCamera("Ball Detector", preview=True, draw_detections=True, camera_port=0)
     camera.start()

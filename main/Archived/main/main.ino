@@ -7,10 +7,5 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("Loop start");
   bot->update();
-  Serial.println("Loop end");
 }
-
-
-

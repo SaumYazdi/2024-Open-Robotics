@@ -3,13 +3,13 @@ Main camera systems which will parse the ball location data to the main
 """
 
 from camera import DownFacingCamera, FrontFacingCamera
-from math import degrees
+from math import degrees, pi
 import serial
 import struct
 
 RECEIVER = "/dev/ttyACM0" # Work out the name for PICO
-BAUD_RATE = 9600
-        
+BAUD_RATE = 115200
+
 class Robot:
     """
     System to parse ball data serially to the main controller.
@@ -26,12 +26,17 @@ class Robot:
     
     def update(self):
         """System update loop. Updates the ball's distance and angle variables."""
+
+        # Prioritise results from down facing camera (PORT 1)
         self.distance = self.camera1.get_distance()
         self.angle = self.camera1.get_angle()
-        if not (self.distance or self.angle) and self.camera2 is not None:
+        if not (self.distance and self.angle) and self.camera2 is not None:
             self.distance = self.camera2.get_distance()
             self.angle = self.camera2.get_angle()
         
+            # OTHER SOLUTION (TWO down-facing cameras, the second one is oriented 90 deg another way so have to correct for it.)
+            # self.angle = self.camera2.get_angle() - pi / 2
+
         try:
             self.ser = serial.Serial(RECEIVER, BAUD_RATE, timeout=3)
         except serial.serialutil.SerialException:
@@ -45,7 +50,6 @@ class Robot:
         
         if self.distance and self.angle:
             self.send(self.distance, -degrees(self.angle))
-        # print(f"Distance: {str(self.distance): <16} Angle: {str(self.angle): <16}")
         
         self.tick += 1
         if self.tick % 5 == 0:
@@ -64,12 +68,12 @@ class Robot:
         Start reading the camera and producing ball data.
         """
         self.camera1.start()
-        print("e")
         
 
 if __name__ == "__main__":
     camera1 = DownFacingCamera("360", preview=False, draw_detections=False, camera_port=0)
     camera2 = FrontFacingCamera("Front", preview=False, draw_detections=False, camera_port=1)
+    # camera2 = DownFacingCamera("Angle offset", preview=False, draw_detections=False, camera_port=1)
     
     robot = Robot(camera1, camera2)
     robot.start()
