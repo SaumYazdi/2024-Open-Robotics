@@ -10,15 +10,6 @@
 #define switchMiddle 12
 #define switchUp 11
 
-const double FIELD_WIDTH = 1820.0;
-const double FIELD_HEIGHT = 2430.0;
-
-const int NUM_BYTES = 8;
-int byteIndex = 0;
-char data[4];
-
-float threeSixty = static_cast<float>(360);
-
 struct euler_t {
   float yaw;
 } ypr;
@@ -70,19 +61,22 @@ std::vector<Wall> walls = {
     {{0, FIELD_HEIGHT}, {FIELD_WIDTH, FIELD_HEIGHT}}  // Bottom wall
 };
 
+const int NUM_BYTES = 8;
+int byteIndex = 0;
+char data[4];
+
+float threeSixty = static_cast<float>(360);
+
 Adafruit_BNO08x bno08x(BNO08X_RESET);
 sh2_SensorValue_t sensorValue;
 SteelBarToF tofs[8]; // Sensor objects for the eight ToF sensors
+
 const int tofAddresses[8] = {0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57};
-int tofOffset = 100;
-double tofAngles[8] = { -33.5, -68.5, -113.5, -158.5, 158.5, 113.5, 68.5, 33.5 };
+const int tofOffset = 100;
+const float tofAngles[8] = { -33.5, -68.5, -113.5, -158.5, 158.5, 113.5, 68.5, 33.5 };
 
 LogicModule::LogicModule() {
-  // Pi5 Serial
-  Serial.end();
-  Serial.begin(115200);
-
-  Serial.println("Initialised");
+  Serial.println("Initialised LogicModule");
 
   Wire.setSCL(9);
   Wire.setSDA(8);
@@ -164,7 +158,9 @@ LogicModule::LogicModule() {
   delay(500);
 
   readIMU();
+  delay(500);
 
+  // Set initial heading
   heading = ypr.yaw;
 }
 
@@ -458,15 +454,56 @@ void LogicModule::calibrate() {
   heading = ypr.yaw;
 }
 
-void LogicModule::logic() {
+float LogicModule::correctedHeading() {
+  readIMU();
+  return fmod(ypr.yaw - heading + 360, threeSixty);
+}
+
+void LogicModule::logic(float direction = -1.0, float speed = -1.0) {
+  float correction = correctedHeading();
+
+  if (direction != -1.0 && speed != -1.0) {
+    if (speed > 0) {
+      // Convert angle to radians and add robot heading
+      float rad = (direction - 45 + correction) * DEG_TO_RAD;
+
+      // Calculate motor speeds
+      float speedY1 = -cosf(rad);
+      float speedX2 = -sinf(rad);
+      float speedY3 = cosf(rad);
+      float speedX4 = sinf(rad);
+      
+      // Apply the scale factor to all motor speeds
+      float scaledSpeedY1 = speedY1 * speed;
+      float scaledSpeedX2 = speedX2 * speed;
+      float scaledSpeedY3 = speedY3 * speed;
+      float scaledSpeedX4 = speedX4 * speed;
+
+      // Set the motor speeds
+      motor1.setSpeed(scaledSpeedY1);
+      motor2.setSpeed(scaledSpeedX2);
+      motor3.setSpeed(scaledSpeedY3);
+      motor4.setSpeed(scaledSpeedX4);
+
+      Serial.print(scaledSpeedY1);
+      Serial.print(", ");
+      Serial.print(scaledSpeedX2);
+      Serial.print(", ");
+      Serial.print(scaledSpeedY3);
+      Serial.print(", ");
+      Serial.println(scaledSpeedX4);
+      Serial.println(correction);
+
+    } else {
+      stop();
+    }
+    return;
+  }
 
   bool seesBall = readBall();
-  readIMU();
   // readTOFs();
 
   bool hasBall = (distance < 20) && (-15 <= angle && angle <= 15);
-
-  float correction = fmod(ypr.yaw - heading + 360, threeSixty);
 
   if (correction > 180) {
     correction -= 360;
@@ -522,20 +559,20 @@ void LogicModule::logic() {
   }
 }
 
-void LogicModule::update() {
+int LogicModule::update() {
   digitalWrite(switchMiddle, HIGH);
 
-  // Serial.println(getMode());
-
+  int mode;
   if (digitalRead(switchDown)) {
-    calibrate();
+    mode = CALIBRATION;
   }
   else if (digitalRead(switchUp)) {
-    logic();
+    mode = RUNNING;
   }
   else {
-    stop();
+    mode = NEUTRAL;
   }
 
-  delay(1); // Adjust delay as needed
+  return mode;
+  // delay(1); // Adjust delay as needed
 }

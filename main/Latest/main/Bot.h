@@ -3,18 +3,24 @@
 
 #include "Arduino.h"
 #include "LogicModule.h"
-// #include "WebserverModule.h"
 
 class Bot {
   public:
-    Bot();
+    Bot() {
+      mode = NEUTRAL;
+    }
     void update();
     int getMode();
     void setMode(int botMode);
+    float heading();
+    int* tofs();
+    
+    LogicModule logic;
+    float speed = 0;
+    float direction = 0;
   private:
     int mode;
-    LogicModule logic;
-    // WebserverModule web;
+    int distances[8];
 };
 
 #endif

@@ -1,29 +1,35 @@
 #include "Arduino.h"
 #include "Bot.h"
 
-// Constants
-#define CALIBRATION 0xA2
-#define NEUTRAL 0xA3
-#define RUNNING 0xB6
+void Bot::update() {
+  mode = logic.update();
 
-Bot::Bot() {
-  mode = NEUTRAL;
+  switch (mode) {
+    case CALIBRATION:
+      logic.calibrate();
+      break;
+      
+    case NEUTRAL:
+      logic.stop();
+      break;
+
+    case RUNNING:
+      logic.logic(direction, speed);
+      break;
+  }
 }
 
-void Bot::update() {
-  logic.update();
-  // web.update();
+float Bot::heading() {
+  return logic.correctedHeading();
+}
 
-  // switch (mode) {
-  //   case CALIBRATION:
-  //     break;
-      
-  //   case NEUTRAL:
-  //     break;
+int* Bot::tofs() {
+  logic.readTOFs();
+  for (int i = 0; i < 5; i++) {
+    distances[i] = logic.distances[i];
+  }
 
-  //   case RUNNING:
-  //     break;
-  // }
+  return distances;
 }
 
 int Bot::getMode() {

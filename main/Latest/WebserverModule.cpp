@@ -1,14 +1,20 @@
 #include "WebserverModule.h"
 
+IPAddress local_IP(192, 168, 4, 1);  // Set your desired static IP address
+IPAddress gateway(192, 168, 4, 1);   // Usually the same as the IP address
+IPAddress subnet(255, 255, 255, 0);
+IPAddress IP;
+
 WebserverModule::WebserverModule() {
-  // Start the serial communication channel
-  Serial.begin(9600);
-  while (!Serial); // Wait until serial is available
-  Serial.println();
- 
+  speed = 0;
+  direction = 0;
+  status = "Connected";
+
+  server = new WebServer(80);
+  
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(local_IP, gateway, subnet); // Configure static IP
-   
+  
   //Setting the AP Mode with SSID, Password, and Max Connection Limit
   if(WiFi.softAP(ap_ssid,ap_password,1,false,max_connections)==true) {
     Serial.print("Access Point is Created with SSID: ");
@@ -21,21 +27,28 @@ WebserverModule::WebserverModule() {
   else {
     Serial.println("Unable to Create Access Point");
   }
- 
+}
+
+void WebserverModule::setup() {  
+  // Start the serial communication channel
+  Serial.begin(9600);
+  while (!Serial); // Wait until serial is available
+  Serial.println();
+
   //Specifying the functions which will be executed upon corresponding GET request from the client
-  server.on("/", HTTP_GET, handle_OnConnect);
-  server.on("/speed", handle_speed);
-  server.on("/direction", handle_direction);
-  server.onNotFound(handle_NotFound);
+  server->on("/", HTTP_GET, handle_OnConnect);
+  server->on("/speed", handle_speed);
+  server->on("/direction", handle_direction);
+  server->onNotFound(handle_NotFound);
    
   //Starting the Server
-  server.begin();
+  server->begin();
   Serial.println("HTTP Server Started");
 }
  
 void WebserverModule::update() {
   // Assign the server to handle the clients
-  server.handleClient();
+  server->handleClient();
      
   //Continuously check how many stations are connected to Soft AP and notify whenever a new station is connected or disconnected
   new_stations = WiFi.softAPgetStationNum();
@@ -55,29 +68,29 @@ void WebserverModule::update() {
   }
 }
  
-void handle_OnConnect() {
+void WebserverModule::handle_OnConnect() {
   status = "Connected to AP";
   Serial.println("Client Connected");
-  server.send(200, "text/html", HTML()); 
+  server->send(200, "text/html", HTML()); 
 }
 
-void handle_speed() {
-  speed = server.arg("value").toInt();
+void WebserverModule::handle_speed() {
+  speed = server->arg("value").toInt();
   Serial.println(speed);
-  server.send(200, "text/html", HTML());
+  server->send(200, "text/html", HTML());
 }
 
-void handle_direction() {
-  direction = server.arg("value").toInt();
+void WebserverModule::handle_direction() {
+  direction = server->arg("value").toInt();
   Serial.println(direction);
-  server.send(200, "text/html", HTML());
+  server->send(200, "text/html", HTML());
 }
 
-void handle_NotFound() {
-  server.send(404, "text/plain", "Not found");
+void WebserverModule::handle_NotFound() {
+  server->send(404, "text/plain", "Not found");
 }
  
-String HTML() {
+String WebserverModule::HTML() {
   const char index_html[] PROGMEM = R"rawliteral(
   <!DOCTYPE html>
     <html>

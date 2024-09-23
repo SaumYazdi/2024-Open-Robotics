@@ -9,6 +9,14 @@
 #include <limits>
 #include <Adafruit_BNO08x.h>
 
+// Constants
+#define CALIBRATION 0xA2
+#define NEUTRAL 0xA3
+#define RUNNING 0xB6
+
+const double FIELD_WIDTH = 1820.0;
+const double FIELD_HEIGHT = 2430.0;
+
 class LogicModule {
   public:
     LogicModule();
@@ -25,8 +33,13 @@ class LogicModule {
     void odometry(float direction);
     void stop();
     void calibrate();
-    void logic();
-    void update();
+    float correctedHeading();
+    void logic(float direction, float speed);
+    int update();
+
+    int simDistances[8] = {0,0,0,0,0,0,0,0};
+    int distances[8];
+    float heading = 0;
 
   private:
     PowerfulBLDCdriver motor1;
@@ -36,14 +49,11 @@ class LogicModule {
     PowerfulBLDCdriver motor5;
     float distance = 0;
     float angle = 0;
-    float heading = 0;
     float robotX = 0.0;
     float robotY = 0.0;
     float step = 100.0;
     int kickoffTicks = 0;
     int lostTicks = 0;
-    int simDistances[8] = {0,0,0,0,0,0,0,0};
-    int distances[8];
 };
 
 #endif
