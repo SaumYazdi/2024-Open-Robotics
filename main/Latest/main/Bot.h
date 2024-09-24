@@ -10,7 +10,7 @@ class Bot {
       mode = NEUTRAL;
     }
     void update();
-    int getMode();
+    String getMode();
     void setMode(int botMode);
     float heading();
     int* tofs();

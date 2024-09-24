@@ -18,7 +18,7 @@ void handle_NotFound();
 
 String HTML();
 String status = "Connected";
- 
+
 // Specifying the SSID and Password of the AP
 const char* ap_ssid = "Shenzhen Weinan Electronics Co."; // Access Point SSID
 const char* ap_password= "admin654"; // Access Point Password
@@ -50,11 +50,10 @@ void setup() {
   server.on("/speed", handle_speed);
   server.on("/direction", handle_direction);
   server.on("/update", handle_update);
-  server.on("/get_sensor_values", get_sensor_values);
   server.on("/dynamic_values", dynamic_values);
   server.onNotFound(handle_NotFound);
-   
-  //Starting the Server
+
+  // Starting the Server
   server.begin();
 }
 
@@ -63,19 +62,6 @@ void loop() {
   
   // Assign the server to handle the clients
   server.handleClient();
-     
-  // Continuously check how many stations are connected to Soft AP and notify whenever a new station is connected or disconnected
-  new_stations = WiFi.softAPgetStationNum();
-   
-  if(current_stations < new_stations) // Device is Connected
-  {
-    current_stations = new_stations;
-  }
-   
-  if(current_stations > new_stations) // Device is Disconnected
-  {
-    current_stations = new_stations;
-  }
 }
  
 void handle_OnConnect() {
@@ -110,24 +96,9 @@ void handle_NotFound() {
   server.send(404, "text/plain", "Not found");
 }
 
-void get_sensor_values() {
-  String heading(bot->heading());
-  int* tofs = bot->tofs();
-  String distances = "[";
-  for (int i = 0; i < 8; i++) {
-    distances += String(tofs[i]);
-    if (i < 7) {
-      distances += ", ";
-    }
-  }
-  distances += "]";
-  String json_data = "{\"heading\": " + heading + ", \"tofs\": \"" + distances  + "\"}";
-
-  server.send(200, "application/json", json_data);
-}
-
 void dynamic_values() {
   String heading(bot->heading());
+
   int* tofs = bot->tofs();
   String distances = "{";
   for (int i = 0; i < 8; i++) {
@@ -137,20 +108,17 @@ void dynamic_values() {
     }
   }
   distances += "}";
-  String json_data = "{\"heading\": " + heading + ", \"tofs\": " + distances  + "}";
+
+  String mode = bot->getMode();
+
+  String json_data = "{\"heading\": " + heading + ", \"tofs\": " + distances + ", \"mode\": \"" + mode + "\"" + "}";
 
   String page = R"rawliteral(
-  <!DOCTYPE html>
-    <html>
     <head>
       <meta http-equiv=refresh content=0>
-      <title>Values</title></HEAD><BODY>
     </head>
-    <body>
   )rawliteral" + json_data +
   R"rawliteral(
-    </body>
-    </html>
   )rawliteral";
 
   server.send(200, "text/html", page);
@@ -338,6 +306,7 @@ String HTML() {
             document.addEventListener('touchend', function(e) {window.onmouseup(e)}, false);
         </script>
 
+        <p id="mode-label"></p>
         <iframe src='/dynamic_values' width='300' height='300' name='DataBox' id='values-box'></iframe>
         <canvas id="heading-canvas" width="300" height="300"/>
         <p id="tof-label"></p>
@@ -353,6 +322,7 @@ String HTML() {
           let headingContext = headingCanvas.getContext("2d");
 
           let tofLabel = document.getElementById("tof-label");
+          let modeLabel = document.getElementById("mode-label");
           
           function update(event) {
             console.log(event);
@@ -361,7 +331,8 @@ String HTML() {
               return;
             let data = JSON.parse(page);
             heading = data.heading;
-            tofLabel.innerHTML = "TOFs: " + data.tofs
+            tofLabel.innerHTML = "TOFs: " + data.tofs;
+            modeLabel.innerHTML = "Mode: " + data.mode;
             drawHeading()
           }
 

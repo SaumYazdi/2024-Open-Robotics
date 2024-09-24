@@ -32,8 +32,21 @@ int* Bot::tofs() {
   return distances;
 }
 
-int Bot::getMode() {
-  return mode;
+String Bot::getMode() {
+  switch (mode) {
+    case CALIBRATION:
+      return "Calibration";
+      break;
+    case NEUTRAL:
+      return "Neutral";
+      break;
+    case RUNNING:
+      return "Running";
+      break;
+    default:
+      return "None";
+      break;
+  }
 }
 
 void Bot::setMode(int botMode) {
