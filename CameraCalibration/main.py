@@ -4,7 +4,7 @@ Run this file 'main.py' and access the control panel at <ipv4-address>:8080
 """
 
 from threading import Thread
-from camera import Camera
+from camera import FrontFacingCamera, DownFacingCamera
 from server import Server
 from robot import Robot
 from fan import Fan
@@ -37,16 +37,18 @@ def update():
         server.preview = camera.image.copy()
 
 if __name__ == "__main__":
-    camera = Camera("Soccer Robot", preview=False, draw_detections=False)
+    camera = DownFacingCamera("360", preview=False, draw_detections=False, camera_port=0, detect_back=True)
+    camera2 = DownFacingCamera("offset", preview=False, draw_detections=False, camera_port=1)
     camera.set_update(update)
     
-    robot = Robot(camera)
+    robot = Robot(camera, camera2)
     
     fan = Fan()
     fan.on()
  
     threads = [
-        Thread(target=robot.start),
+        Thread(target=camera.start),
+        Thread(target=camera2.start),
     ]
 
     server = None

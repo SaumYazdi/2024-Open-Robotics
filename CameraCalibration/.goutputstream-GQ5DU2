@@ -1,18 +1,19 @@
 """
-Calibration control panel.
-Run this file 'calibrate.py' and access the control panel at <ipv4-address>:8080
+Testing interface
+Run this file 'main.py' and access the control panel at <ipv4-address>:8080
 """
 
 from threading import Thread
-from camera import DownFacingCamera, FrontFacingCamera
+from camera import FrontFacingCamera, DownFacingCamera
 from server import Server
+from robot import Robot
 from fan import Fan
+import sys
 
 def update():
     """
     Update server values with ball measurements for calibration
     """
-
     if server is None:
         return
         
@@ -20,10 +21,9 @@ def update():
         server.x_offset = camera.pos.x
     else:
         server.x_offset = None
-    
+        
     server.radius = camera.radius
-    if type(camera) == DownFacingCamera:
-        server.radial_distance = camera.radial_distance
+    server.radial_distance = camera.radial_distance
     server.angle = camera.angle
     server.distance = camera.distance
 
@@ -37,17 +37,30 @@ def update():
         server.preview = camera.image.copy()
 
 if __name__ == "__main__":
-    camera = FrontFacingCamera("Ball Detector", preview=False, draw_detections=True)
+    camera = DownFacingCamera("360", preview=False, draw_detections=False, camera_port=0)#, detect_back=True)
+    camera2 = DownFacingCamera("offset", preview=False, draw_detections=False, camera_port=1)
     camera.set_update(update)
-    server = Server(__name__)
-
+    
+    robot = Robot(camera, camera2)
+    
     fan = Fan()
     fan.on()
-
+ 
     threads = [
-        Thread(target=server.start),
         Thread(target=camera.start),
+        Thread(target=camera2.start),
     ]
 
+    server = None
+    args = sys.argv
+    if len(args) > 1:
+        arg = args[1]
+    
+        if arg == "view":
+            print("Starting flask webserver")
+            camera.draw_detections = True
+            server = Server(__name__)
+            threads.append(Thread(target=server.start))
+           
     for thread in threads:
         thread.start()
