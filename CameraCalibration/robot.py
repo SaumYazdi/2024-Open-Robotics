@@ -27,19 +27,29 @@ class Robot:
     def update(self):
         """System update loop. Updates the ball's distance and angle variables."""
 
+<<<<<<< HEAD
         # print(self.camera1.get_distance(), self.camera2.get_distance())
 
+=======
+>>>>>>> 652d6e8afdbefdaa926e39a9499bf91f1bd98484
         # Prioritise results from down facing camera (PORT 1)
         self.distance = self.camera1.get_distance()
         self.angle = self.camera1.get_angle()
         if not (self.distance and self.angle) and self.camera2 is not None:
             self.distance = self.camera2.get_distance()
+<<<<<<< HEAD
             # self.angle = self.camera2.get_angle()
         
             # OTHER SOLUTION (TWO down-facing cameras, the second one is oriented 90 deg another way so have to correct for it.)
             self.angle = self.camera2.get_angle()
             if self.angle is not None:
                 self.angle += pi / 2
+=======
+            self.angle = self.camera2.get_angle()
+        
+            # OTHER SOLUTION (TWO down-facing cameras, the second one is oriented 90 deg another way so have to correct for it.)
+            # self.angle = self.camera2.get_angle() - pi / 2
+>>>>>>> 652d6e8afdbefdaa926e39a9499bf91f1bd98484
 
         try:
             self.ser = serial.Serial(RECEIVER, BAUD_RATE, timeout=1)
@@ -74,6 +84,7 @@ class Robot:
         self.camera1.start()
         
 
+<<<<<<< HEAD
 # if __name__ == "__main__":
     # camera1 = DownFacingCamera("360", preview=False, draw_detections=False, camera_port=0)
     # camera2 = FrontFacingCamera("Front", preview=False, draw_detections=False, camera_port=1)
@@ -81,3 +92,12 @@ class Robot:
     
     # robot = Robot(camera1, camera2)
     # robot.start()
+=======
+if __name__ == "__main__":
+    camera1 = DownFacingCamera("360", preview=False, draw_detections=False, camera_port=0)
+    camera2 = FrontFacingCamera("Front", preview=False, draw_detections=False, camera_port=1)
+    # camera2 = DownFacingCamera("Angle offset", preview=False, draw_detections=False, camera_port=1)
+    
+    robot = Robot(camera1, camera2)
+    robot.start()
+>>>>>>> 652d6e8afdbefdaa926e39a9499bf91f1bd98484
