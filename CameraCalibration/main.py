@@ -37,8 +37,8 @@ def update():
         server.preview = camera.image.copy()
 
 if __name__ == "__main__":
-    camera = DownFacingCamera("360", preview=False, draw_detections=False, camera_port=0, detect_back=True)
-    camera2 = DownFacingCamera("offset", preview=False, draw_detections=False, camera_port=1)
+    camera = DownFacingCamera("FrontBack", preview=False, draw_detections=False, camera_port=0, detect_back=True)
+    camera2 = DownFacingCamera("SideToSide", preview=False, draw_detections=False, camera_port=1)
     camera.set_update(update)
     
     robot = Robot(camera, camera2)

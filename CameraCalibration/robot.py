@@ -7,8 +7,11 @@ from math import degrees, pi
 import serial
 import struct
 
-RECEIVER = "/dev/ttyACM0" # Work out the name for PICO
+# RECEIVER = "/dev/ttyACM0" # USB
+RECEIVER = "/dev/ttyAMA0" # GPIO
 BAUD_RATE = 115200
+
+END_SEQUENCE = b'\xab\xcd'
 
 class Robot:
     """
@@ -43,6 +46,7 @@ class Robot:
         except serial.serialutil.SerialException:
             # BISMILLAH DONT THROW ERROR
             self.ser = None
+            print("Pico Not Connected")
             pass
 
         print(self.distance, self.angle)
@@ -60,7 +64,7 @@ class Robot:
         """
         Send serial data to the main controller.
         """
-        send_data = struct.pack('f', dist) + struct.pack('f', angle)
+        send_data = struct.pack('f', dist) + struct.pack('f', angle) + END_SEQUENCE
             
         self.ser.write(send_data)
     
@@ -72,8 +76,8 @@ class Robot:
         
 
 if __name__ == "__main__":
-    camera1 = DownFacingCamera("360", preview=False, draw_detections=False, camera_port=0)
-    camera2 = DownFacingCamera("Angle offset", preview=False, draw_detections=False, camera_port=1)
+    camera1 = DownFacingCamera("FrontBack", preview=False, draw_detections=False, camera_port=0)
+    camera2 = DownFacingCamera("SideToSide", preview=False, draw_detections=False, camera_port=1)
     
     robot = Robot(camera1, camera2)
     robot.start()

@@ -332,11 +332,13 @@ class DownFacingCamera:
                     x = int(self.camera_center[0] + self.mask_radius + 10)
                     y = int(self.camera_center[1])
                     red = frame[y, x][2]
+                    green = frame[y, x][1]
+                    blue = frame[y, x][0]
                     try:
-                        if red < 80:
-                            self.distance = get_dist(self.radius / self.radial_distance)
-                        else:
+                        if red > 80 and green < 50 and blue < 50:
                             self.distance = 12
+                        else:
+                            self.distance = get_dist(self.radius / self.radial_distance)
                     except PermissionError:
                         pass
                     scale = size[0] * .006
