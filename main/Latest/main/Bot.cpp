@@ -3,6 +3,10 @@
 
 void Bot::update() {
   mode = logic.update();
+  
+  Serial.print(logic.initialHeading);
+  Serial.print(" | ");
+  Serial.println(heading());
 
   switch (mode) {
     case CALIBRATION:

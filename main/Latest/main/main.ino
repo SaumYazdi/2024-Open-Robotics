@@ -34,9 +34,6 @@ IPAddress IP;
 WebServer server(80);
 
 void setup() {
-  // Pi5 Serial
-  Serial.end();
-  Serial.begin(115200);
   bot = new Bot();
 
   WiFi.mode(WIFI_AP);
@@ -143,8 +140,8 @@ void dynamic_values() {
   json_data = add_item(json_data, "y", String(bot->logic.robotY)) + ",";
   json_data = add_item(json_data, "kickoffTicks", String(bot->logic.kickoffTicks)) + ",";
   json_data = add_item(json_data, "lostTicks", String(bot->logic.lostTicks)) + ",";
-  json_data = add_item(json_data, "distance", String(bot->logic.distance)) + ",";
-  json_data = add_item(json_data, "angle", String(bot->logic.angle));
+  json_data = add_item(json_data, "distance", String(bot->logic.ballDistance)) + ",";
+  json_data = add_item(json_data, "angle", String(bot->logic.ballAngle));
   json_data += "}";
 
   server.send(200, "text/plain", json_data);
@@ -182,7 +179,7 @@ String HTML() {
         <button onclick="location.reload()">Refresh</button>
 
         <p id="mode-label"></p>
-        <canvas id="heading-canvas" width="450" height="450"></canvas>
+        <canvas id="heading-canvas" width="1280" height="1280"></canvas>
         <div style="position: fixed; right: 0; bottom: 0;">
           <button id="slow-left" style="margin: 1rem; user-select: none; -webkit-user-select: none;"><</button>
           <canvas id="joystick" width="210" height="210"></canvas>
@@ -216,6 +213,9 @@ String HTML() {
 
           let modeLabel = document.getElementById("mode-label");
           
+          let ballDistance = null;
+          let ballAngle = null;
+
           let dataReq = new XMLHttpRequest();
           dataReq.onload = update;
           dataReq.open("GET", "/dynamic_values", true);
@@ -229,20 +229,22 @@ String HTML() {
             modeLabel.innerHTML = "Mode: " + data.mode;
             drawHeading();
 
-            subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances}`;
+            subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances} <br>Distance: ${data.distance} <br>Angle: ${data.angle} <br>Position: ${x}, ${y}`;
+            ballAngle = parseInt(data.angle) * Math.PI / 180;
+            ballDistance = parseInt(data.distance);
 
             dataReq.open("GET", "/dynamic_values", true);
             dataReq.send(null);
           }
 
-          let headingRadius = 11;
+          let headingRadius = 50;
           let distanceScaleFactor = .2;
-          let scale = headingRadius / 100;
           let rHeading, rAngle, prevRot, diff, distance;
           function drawHeading() {
+            let scale = headingRadius / 100;
             rHeading = (-90 - heading) * Math.PI / 180;
             headingContext.fillStyle = 'rgb(255, 255, 255)';
-            headingContext.fillRect(0, 0, 500, 500);
+            headingContext.fillRect(0, 0, headingWidth, headingHeight);
 
             headingContext.beginPath();
             headingContext.arc(headingWidth / 2, headingHeight / 2, headingRadius, 0.14 * Math.PI + rHeading, 1.86 * Math.PI + rHeading, false);
@@ -260,10 +262,10 @@ String HTML() {
 
             prevRot = 0;
             let i = 0;
-            for (let angle in tofs) {
-              distance = tofs[angle] * distanceScaleFactor;
+            for (let tofAngle in tofs) {
+              distance = tofs[tofAngle] * distanceScaleFactor;
               if (distance > 0 && distance <= 10000 * distanceScaleFactor) {
-                rAngle = angle * Math.PI / 180;
+                rAngle = tofAngle * Math.PI / 180;
                 diff = rAngle - prevRot;
                 headingContext.rotate(diff);
 
@@ -283,6 +285,15 @@ String HTML() {
 
               i++;
             }
+
+            let ballRadius = 12 * scale;
+            let ballDistanceScale = 6 * scale;
+            headingContext.beginPath();
+            let bx = ballDistanceScale * ballDistance * Math.cos(ballAngle);
+            let by = ballDistanceScale * ballDistance * Math.sin(ballAngle);
+            headingContext.arc(bx, by, ballRadius, 0, 2 * Math.PI, false);
+            headingContext.fillStyle = 'rgb(250, 50, 5)';
+            headingContext.fill();
 
             headingContext.setTransform(1, 0, 0, 1, 0, 0);
           }
@@ -381,8 +392,7 @@ String HTML() {
             };
             var closeXHR = new XMLHttpRequest();
             window.onmouseup = () => {
-              if (ticks == 0)
-                return; 
+                
               x = w / 2;
               y = h / 2;
               drawJoystick(previewContext);
@@ -403,3 +413,4 @@ String HTML() {
 
   return index_html;
 }
+

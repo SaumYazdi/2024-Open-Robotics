@@ -1,6 +1,6 @@
 
 void setup() {
-  Serial.begin(9600);
+  Serial1.begin(115200);
 }
 
 float bytesToFloat(uint8_t *bytes) {
@@ -14,8 +14,8 @@ const int NUM_BYTES = 8;
 int byteIndex = 0;
 char data[4];
 void loop() {
-  if (Serial.available() > 0) {
-    char recv = Serial.read();
+  if (Serial1.available() > 0) {
+    char recv = Serial1.read();
     data[byteIndex] = recv;
 
     if (++byteIndex >= NUM_BYTES) {
@@ -30,6 +30,5 @@ void loop() {
       String text = "dist: " + String(dist, 3) + " angle: " + String(angle, 3);
       Serial.println(text);
     }
-    
   }
 }

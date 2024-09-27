@@ -61,10 +61,6 @@ std::vector<Wall> walls = {
     {{0, FIELD_HEIGHT}, {FIELD_WIDTH, FIELD_HEIGHT}}  // Bottom wall
 };
 
-const int NUM_BYTES = 8;
-int byteIndex = 0;
-char data[4];
-
 float threeSixty = static_cast<float>(360);
 
 Adafruit_BNO08x bno08x(BNO08X_RESET);
@@ -77,6 +73,11 @@ const float tofAngles[8] = { -33.5, -68.5, -113.5, -158.5, 158.5, 113.5, 68.5, 3
 
 LogicModule::LogicModule() {
   Serial.println("Initialised LogicModule");
+
+  // Pi5 Serial
+  Serial1.flush();
+  Serial1.end();
+  Serial1.begin(115200);
 
   Wire.setSCL(9);
   Wire.setSDA(8);
@@ -161,7 +162,7 @@ LogicModule::LogicModule() {
   delay(500);
 
   // Set initial heading
-  heading = ypr.yaw;
+  initialHeading = ypr.yaw;
 }
 
 // IMU Functions
@@ -256,9 +257,8 @@ float LogicModule::distancePolynomial(float x) {
         (-0.0004762 * x) + 1.343;
 }
 
-float LogicModule::calculateFinalDirection() {
-
-  float tempAngle = angle;
+float LogicModule::calculateFinalBallDirection() {
+  float tempAngle = ballAngle;
 
   if (tempAngle > 180) {
     tempAngle -= 360;
@@ -275,11 +275,11 @@ float LogicModule::calculateFinalDirection() {
   }
 
   float scalar;
-  if (distance > 30 && (angle > -140 && angle < 140)) {
+  if (ballDistance > 30 && (ballAngle > -140 && ballAngle < 140)) {
     scalar = 0;
   } else {
     scalar = 1;
-  } //= min(max(distancePolynomial(distance),0),1);
+  } //= min(max(distancePolynomial(ballDistance),0),1);
 
   return tempAngle + (unscaledAngle - tempAngle) * scalar;
 }
@@ -317,23 +317,30 @@ void LogicModule::moveRobot(float direction, float rotation, int targetSpeed = 9
 }
 
 bool LogicModule::readBall() {
-  if (Serial.available() > 0) {
-    char recv = Serial.read();
+  if (Serial1.available() > 0) {
+    char recv = Serial1.read();
+
+    // To prevent uart interface going out of order, at the end of the char sequence, reset bytes index
+    if (data[(byteIndex - 2) % NUM_BYTES] == 0b10101011 && data[(byteIndex - 1) % NUM_BYTES] == 0b11001101) {byteIndex = 0;}
+
     data[byteIndex] = recv;
 
+    // Once collected all bytes, reset the byte counter
     if (++byteIndex >= NUM_BYTES) {
       byteIndex = 0;
       
       uint8_t distanceBytes[4] = {data[0], data[1], data[2], data[3]};
-      distance = bytesToFloat(distanceBytes);
+      ballDistance = bytesToFloat(distanceBytes);
 
       uint8_t angleBytes[4] = {data[4], data[5], data[6], data[7]};
-      angle = bytesToFloat(angleBytes);
+      ballAngle = bytesToFloat(angleBytes);
+
+      seesBall = true;
+      return true;
     }
-    
-    return true;
   }
 
+  seesBall = false;
   return false;
 }
 
@@ -451,13 +458,12 @@ void LogicModule::stop() {
 
 void LogicModule::calibrate() {
   readIMU();
-
-  heading = ypr.yaw;
+  initialHeading = ypr.yaw;
 }
 
 float LogicModule::correctedHeading() {
   readIMU();
-  return fmod(ypr.yaw - heading + 360, threeSixty);
+  return fmod(ypr.yaw - initialHeading + 360, threeSixty);
 }
 
 void LogicModule::manual(float direction, float speed) {
@@ -493,10 +499,10 @@ void LogicModule::manual(float direction, float speed) {
 void LogicModule::logic(float direction, float speed) {
   float correction = correctedHeading();
 
-  bool seesBall = readBall();
+  readBall();
   readTOFs();
 
-  bool hasBall = (distance < 20) && (-15 <= angle && angle <= 15);
+  bool hasBall = (ballDistance < 20) && (-15 <= ballAngle && ballAngle <= 15);
 
   if (correction > 180) {
     correction -= 360;
@@ -504,10 +510,6 @@ void LogicModule::logic(float direction, float speed) {
 
   odometry(correction);
   
-  // Serial.println(angle);
-  // Serial.println(finalDirection);
-  // Serial.println(correction);
-
   if (kickoffTicks < kickoffTicksMax) {
     kickoffTicks += 1;
     motor5.setSpeed(80000000);
@@ -531,19 +533,19 @@ void LogicModule::logic(float direction, float speed) {
       } else {
         moveRobot(correction, correction * -10, 50000000);
       }
-    } else if (distance < 30 && (angle < -90 || angle > 90)) {
-      moveRobot(calculateFinalDirection(), -5 * correction, 15000000);
-    } else if (distance < 30) {
-      moveRobot(calculateFinalDirection(), -5 * correction, 25000000);
+    } else if (ballDistance < 30 && (ballAngle < -90 || ballAngle > 90)) {
+      moveRobot(calculateFinalBallDirection(), -5 * correction, 15000000);
+    } else if (ballDistance < 30) {
+      moveRobot(calculateFinalBallDirection(), -5 * correction, 25000000);
     } else {
-      moveRobot(calculateFinalDirection(), -5 * correction, 60000000);
+      moveRobot(calculateFinalBallDirection(), -5 * correction, 60000000);
     }
   }
   else {
 
     motor5.setSpeed(0);
 
-    if (angle > 0) {
+    if (ballAngle > 0) {
       moveRobot(0, -200, 0);
     }
     else {

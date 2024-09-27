@@ -23,7 +23,7 @@ class LogicModule {
     void setReports(sh2_SensorId_t reportType, long report_interval);
     float anglePolynomial(float x);
     float distancePolynomial(float x);
-    float calculateFinalDirection();
+    float calculateFinalBallDirection();
     void moveRobot(float direction, float rotation, int targetSpeed);
     bool readBall();
     void readIMU();
@@ -41,7 +41,11 @@ class LogicModule {
     int simDistances[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     int distances[8]; // ToFs' distance
 
-    float heading = 0; // Robot orientation/heading
+    const int NUM_BYTES = 10;
+    int byteIndex = 0;
+    char data[4];
+
+    float initialHeading = 0; // Robot orientation/heading
     float targetDirection = 0; // Target direction and speed for display/debugging
     float targetSpeed = 0;
 
@@ -52,8 +56,9 @@ class LogicModule {
     int kickoffTicks = 0; // Time where robot is driving straight forward
     int lostTicks = 0; // Time where ball is not seen
 
-    float distance = 0; // Read ball distance and angle
-    float angle = 0;
+    float ballDistance = 0; // Read ball distance and angle
+    float ballAngle = 0;
+    bool seesBall = false;
 
     PowerfulBLDCdriver motor1;
     PowerfulBLDCdriver motor2;
