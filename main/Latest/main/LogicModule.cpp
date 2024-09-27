@@ -438,6 +438,7 @@ void LogicModule::odometry(float direction) {
 
 void LogicModule::stop() {
   bool seesBall = readBall();
+  targetSpeed = 0;
 
   kickoffTicks = 0;
 
@@ -459,49 +460,41 @@ float LogicModule::correctedHeading() {
   return fmod(ypr.yaw - heading + 360, threeSixty);
 }
 
-void LogicModule::logic(float direction = -1.0, float speed = -1.0) {
+void LogicModule::manual(float direction, float speed) {
   float correction = correctedHeading();
 
+  // JOYSTICK CONTROLS !!!!!!!!
   if (direction != -1.0 && speed != -1.0) {
     if (speed > 0) {
       // Convert angle to radians and add robot heading
-      float rad = (direction - 45 + correction) * DEG_TO_RAD;
+      float deg = direction - 45 + correction;
+      float rad = deg * DEG_TO_RAD;
 
       // Calculate motor speeds
-      float speedY1 = -cosf(rad);
-      float speedX2 = -sinf(rad);
-      float speedY3 = cosf(rad);
-      float speedX4 = sinf(rad);
+      float speedY1 = -cosf(rad) * speed;
+      float speedX2 = -sinf(rad) * speed;
+      float speedY3 = cosf(rad) * speed;
+      float speedX4 = sinf(rad) * speed;
       
-      // Apply the scale factor to all motor speeds
-      float scaledSpeedY1 = speedY1 * speed;
-      float scaledSpeedX2 = speedX2 * speed;
-      float scaledSpeedY3 = speedY3 * speed;
-      float scaledSpeedX4 = speedX4 * speed;
-
       // Set the motor speeds
-      motor1.setSpeed(scaledSpeedY1);
-      motor2.setSpeed(scaledSpeedX2);
-      motor3.setSpeed(scaledSpeedY3);
-      motor4.setSpeed(scaledSpeedX4);
+      motor1.setSpeed(speedY1);
+      motor2.setSpeed(speedX2);
+      motor3.setSpeed(speedY3);
+      motor4.setSpeed(speedX4);
 
-      Serial.print(scaledSpeedY1);
-      Serial.print(", ");
-      Serial.print(scaledSpeedX2);
-      Serial.print(", ");
-      Serial.print(scaledSpeedY3);
-      Serial.print(", ");
-      Serial.println(scaledSpeedX4);
-      Serial.println(correction);
-
+      targetDirection = deg;
+      targetSpeed = speed;
     } else {
       stop();
     }
-    return;
   }
+}
+
+void LogicModule::logic(float direction, float speed) {
+  float correction = correctedHeading();
 
   bool seesBall = readBall();
-  // readTOFs();
+  readTOFs();
 
   bool hasBall = (distance < 20) && (-15 <= angle && angle <= 15);
 
@@ -509,13 +502,13 @@ void LogicModule::logic(float direction = -1.0, float speed = -1.0) {
     correction -= 360;
   }
 
-  // odometry(correction);
+  odometry(correction);
   
   // Serial.println(angle);
   // Serial.println(finalDirection);
   // Serial.println(correction);
 
-  if (kickoffTicks < 300) {
+  if (kickoffTicks < kickoffTicksMax) {
     kickoffTicks += 1;
     motor5.setSpeed(80000000);
     moveRobot(0, correction * -15, 90000000);

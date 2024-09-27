@@ -18,6 +18,7 @@ class Bot {
     LogicModule logic;
     float speed = 0;
     float direction = 0;
+    float turnSpeed = 0;
   private:
     int mode;
     int distances[8];

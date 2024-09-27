@@ -14,7 +14,19 @@ void Bot::update() {
       break;
 
     case RUNNING:
-      logic.logic(direction, speed);
+      if (turnSpeed != 0) {
+        logic.motor1.setSpeed(turnSpeed);
+        logic.motor2.setSpeed(turnSpeed);
+        logic.motor3.setSpeed(turnSpeed);
+        logic.motor4.setSpeed(turnSpeed);
+      } else {
+        if (speed != 0) {
+          logic.motor5.setSpeed(80000000);
+          logic.manual(direction, speed);
+        } else {
+          logic.logic();
+        }
+      }
       break;
   }
 }

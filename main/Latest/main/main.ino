@@ -48,6 +48,7 @@ void setup() {
   // Specifying the functions which will be executed upon corresponding GET request from the client
   server.on("/", HTTP_GET, handle_OnConnect);
   server.on("/speed", handle_speed);
+  server.on("/turn", handle_turn);
   server.on("/direction", handle_direction);
   server.on("/update", handle_update);
   server.on("/dynamic_values", dynamic_values);
@@ -85,6 +86,11 @@ void handle_speed() {
   bot->speed = speed;
 }
 
+void handle_turn() {
+  bot->turnSpeed = server.arg("value").toInt();
+  server.send(200, "text/html", HTML());
+}
+
 void handle_direction() {
   direction = server.arg("value").toInt();
   server.send(200, "text/html", HTML());
@@ -94,6 +100,22 @@ void handle_direction() {
 
 void handle_NotFound() {
   server.send(404, "text/plain", "Not found");
+}
+
+String add_item(String data, String key, String value) {
+  return data + "\"" + key + "\": " + value; 
+}
+
+String convertToString(int* a, int size)
+{
+    String s = "";
+    for (int i = 0; i < size; i++) {
+      s = s + String(a[i]);
+      if (i < size - 1) {
+        s += ", ";
+      }
+    }
+    return s;
 }
 
 void dynamic_values() {
@@ -111,17 +133,21 @@ void dynamic_values() {
 
   String mode = bot->getMode();
 
-  String json_data = "{\"heading\": " + heading + ", \"tofs\": " + distances + ", \"mode\": \"" + mode + "\"" + "}";
+  String json_data = "{";
+  json_data = add_item(json_data, "heading", heading) + ",";
+  json_data = add_item(json_data, "tofs", distances) + ",";
+  json_data = add_item(json_data, "distances", "\"" + convertToString(bot->logic.distances, 8) + "\"") + ",";
+  json_data = add_item(json_data, "simDistances", "\"" + convertToString(bot->logic.simDistances, 8) + "\"") + ",";
+  json_data = add_item(json_data, "mode", "\"" + mode + "\"") + ",";
+  json_data = add_item(json_data, "x", String(bot->logic.robotX)) + ",";
+  json_data = add_item(json_data, "y", String(bot->logic.robotY)) + ",";
+  json_data = add_item(json_data, "kickoffTicks", String(bot->logic.kickoffTicks)) + ",";
+  json_data = add_item(json_data, "lostTicks", String(bot->logic.lostTicks)) + ",";
+  json_data = add_item(json_data, "distance", String(bot->logic.distance)) + ",";
+  json_data = add_item(json_data, "angle", String(bot->logic.angle));
+  json_data += "}";
 
-  String page = R"rawliteral(
-    <head>
-      <meta http-equiv=refresh content=0>
-    </head>
-  )rawliteral" + json_data +
-  R"rawliteral(
-  )rawliteral";
-
-  server.send(200, "text/html", page);
+  server.send(200, "text/plain", json_data);
 }
 
 String HTML() {
@@ -150,42 +176,119 @@ String HTML() {
       </head>
 
       <body>
-        <h1>Robot Controller</h1>
-        <h3>Using Access Point (AP) Mode</h3>
+        <h1 id="title">Robot Controller</h1>
+        <h3 id="subtitle">Using Access Point (AP) Mode</h3>
         
         <button onclick="location.reload()">Refresh</button>
 
-        <input type='range' value=0 min=0 max=90000000 id="speedSlider">
-        <p id="speedLabel">Speed: 0</p>
+        <p id="mode-label"></p>
+        <canvas id="heading-canvas" width="450" height="450"></canvas>
+        <div style="position: fixed; right: 0; bottom: 0;">
+          <button id="slow-left" style="margin: 1rem; user-select: none; -webkit-user-select: none;"><</button>
+          <canvas id="joystick" width="210" height="210"></canvas>
+          <button id="slow-right" style="margin: 1rem; user-select: none; -webkit-user-select: none;">></button>
+        </div>
         <script type="text/javascript">
-          var speedSlider = document.getElementById("speedSlider");
-          var speedLabel = document.getElementById("speedLabel");
-          function updateSpeed() {
-            var speed = speedSlider.value;
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", "/speed?value=" + speed, true);
-            xhr.send();
-            speedLabel.innerHTML = "Speed: " + speed;
-          }
-          speedSlider.addEventListener("change", updateSpeed);
+          let slowLeftButton = document.getElementById("slow-left");
+          let slowRightButton = document.getElementById("slow-right");
+          let turnXHR = new XMLHttpRequest();
+          slowLeftButton.addEventListener("touchstart", () => {turnXHR.open("GET", "/turn?value=-10000", true); turnXHR.send(null);});
+          slowLeftButton.addEventListener("touchend", () => {turnXHR.open("GET", "/turn?value=0", true); turnXHR.send(null);});
+          slowRightButton.addEventListener("touchstart", () => {turnXHR.open("GET", "/turn?value=10000", true); turnXHR.send(null);});
+          slowRightButton.addEventListener("touchend", () => {turnXHR.open("GET", "/turn?value=0", true); turnXHR.send(null);});
         </script>
-        
-        <input type='range' value=0 min=0 max=360 id="directionSlider">
-        <p id="directionLabel">Direction: 0</p>
         <script type="text/javascript">
-          var directionSlider = document.getElementById("directionSlider");
-          var directionLabel = document.getElementById("directionLabel");
-          function updateDirection() {
-            var direction = directionSlider.value;
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", "/direction?value=" + direction, true);
-            xhr.send();
-            directionLabel.innerHTML = "Direction: " + direction;
+          let headingCanvas = document.getElementById("heading-canvas");
+          let headingRect = headingCanvas.getBoundingClientRect();
+          let headingWidth = headingRect.width;
+          let headingHeight = headingRect.height;
+
+          let subTitle = document.getElementById("subtitle");
+
+          let ww = window.innerWidth * 0.9;
+          headingCanvas.style.width = ww + "px";
+          headingCanvas.style.height = ww * headingHeight / headingWidth + "px";
+
+          let heading = 0;
+          let tofs = JSON.parse('{"-33.50": 0, "-68.50": 0, "-113.50": 0, "-158.50": 0, "158.50": 0, "113.50": 0, "68.50": 0, "33.50": 0}');
+          let simDistances = tofs;
+          let headingContext = headingCanvas.getContext("2d");
+
+          let modeLabel = document.getElementById("mode-label");
+          
+          let dataReq = new XMLHttpRequest();
+          dataReq.onload = update;
+          dataReq.open("GET", "/dynamic_values", true);
+          dataReq.send(null);
+          function update(event) {
+            page = dataReq.responseText;
+            let data = JSON.parse(page);
+            heading = data.heading;
+            tofs = data.tofs;
+            simDistances = data.simDistances.split(", ");
+            modeLabel.innerHTML = "Mode: " + data.mode;
+            drawHeading();
+
+            subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances}`;
+
+            dataReq.open("GET", "/dynamic_values", true);
+            dataReq.send(null);
           }
-          directionSlider.addEventListener("change", updateDirection);
+
+          let headingRadius = 11;
+          let distanceScaleFactor = .2;
+          let scale = headingRadius / 100;
+          let rHeading, rAngle, prevRot, diff, distance;
+          function drawHeading() {
+            rHeading = (-90 - heading) * Math.PI / 180;
+            headingContext.fillStyle = 'rgb(255, 255, 255)';
+            headingContext.fillRect(0, 0, 500, 500);
+
+            headingContext.beginPath();
+            headingContext.arc(headingWidth / 2, headingHeight / 2, headingRadius, 0.14 * Math.PI + rHeading, 1.86 * Math.PI + rHeading, false);
+            headingContext.lineWidth = 5 * scale;
+            headingContext.strokeStyle = 'rgb(50, 50, 50)';
+            headingContext.stroke();
+
+            headingContext.translate(headingWidth / 2, headingHeight / 2);
+            headingContext.rotate(rHeading);
+            headingContext.fillStyle = 'rgb(50, 50, 50)';
+            headingContext.strokeRect(-40 * scale, -25 * scale, 80 * scale, 50 * scale);
+            headingContext.strokeRect(52 * scale, -45 * scale, 33 * scale, 90 * scale);
+            headingContext.fillStyle = 'rgb(255, 255, 255)';
+            headingContext.fillRect(70 * scale, -43 * scale, 20 * scale, 86 * scale);
+
+            prevRot = 0;
+            let i = 0;
+            for (let angle in tofs) {
+              distance = tofs[angle] * distanceScaleFactor;
+              if (distance > 0 && distance <= 10000 * distanceScaleFactor) {
+                rAngle = angle * Math.PI / 180;
+                diff = rAngle - prevRot;
+                headingContext.rotate(diff);
+
+                headingContext.strokeStyle = 'rgb(50, 50, 50)';
+                headingContext.beginPath();
+                headingContext.moveTo(headingRadius, 0);
+                headingContext.lineTo(headingRadius + distance, 0);
+                headingContext.stroke();
+
+                prevRot = rAngle;
+              }
+
+              headingContext.beginPath();
+              headingContext.arc(headingRadius + parseInt(simDistances[i]), 0, 5, 0, 2 * Math.PI, false);
+              headingContext.fillStyle = 'rgb(110, 70, 230)';
+              headingContext.fill();
+
+              i++;
+            }
+
+            headingContext.setTransform(1, 0, 0, 1, 0, 0);
+          }
+          drawHeading();
         </script>
-        
-        <canvas id="joystick" width="300" height="300"></canvas>
+
         <script type="text/javascript">
             var canvas = document.getElementById("joystick");
             let rect = canvas.getBoundingClientRect();
@@ -193,32 +296,31 @@ String HTML() {
             let h = rect.height;
             let x = w / 2;
             let y = h / 2;
-            let radius = 100;
+            let joystickRadius = 70;
             let innerRadius = 30;
 
             var previewContext = canvas.getContext("2d");
+            previewContext.lineWidth = 3;
             
-            function drawJoystick() {
-                previewContext.fillStyle = 'rgb(255, 255, 255)';
-                previewContext.fillRect(0, 0, 500, 500);
+            function drawJoystick(ctx) {
+                ctx.clearRect(0, 0, w, h);
 
-                previewContext.beginPath();
-                previewContext.arc(w / 2, h / 2, radius, 0, 2 * Math.PI, false);
-                previewContext.lineWidth = 5;
-                previewContext.strokeStyle = 'rgb(50, 50, 50)';
-                previewContext.stroke();
+                ctx.beginPath();
+                ctx.arc(w / 2, h / 2, joystickRadius, 0, 2 * Math.PI, false);
+                ctx.strokeStyle = 'rgb(50, 50, 50)';
+                ctx.stroke();
 
-                previewContext.beginPath();
-                previewContext.arc(x, y, innerRadius, 0, 2 * Math.PI, false);
-                previewContext.fillStyle = 'rgb(120, 120, 120)';
-                previewContext.fill();
-                previewContext.strokeStyle = 'rgb(50, 50, 50)';
-                previewContext.stroke();
+                ctx.beginPath();
+                ctx.arc(x, y, innerRadius, 0, 2 * Math.PI, false);
+                ctx.fillStyle = 'rgb(120, 120, 120)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgb(50, 50, 50)';
+                ctx.stroke();
             }
-            drawJoystick();
+            drawJoystick(previewContext);
 
             var xhr = new XMLHttpRequest();
-            xhr.addEventListener("load", (event) => {console.log(event); canSend = true;});
+            xhr.addEventListener("load", (event) => {canSend = true;});
             let canSend = true;
             window.blockMenuHeaderScroll = false;
             let ticks = 0;
@@ -242,46 +344,39 @@ String HTML() {
                 let dist = Math.sqrt(dx*dx + dy*dy);
                 let direction = Math.atan2(dy, dx);
 
-                if (dist > radius) {
+                if (dist > joystickRadius) {
                     if (ticks == 0)
                         return;
-                    x = w / 2 - Math.cos(direction) * radius;
-                    y = h / 2 - Math.sin(direction) * radius;
+                    x = w / 2 - Math.cos(direction) * joystickRadius;
+                    y = h / 2 - Math.sin(direction) * joystickRadius;
                 }
                 direction = direction * 180 / Math.PI - 90;
-                let speed = Math.min(maxSpeed, dist * maxSpeed / radius);
+                let speed = Math.min(maxSpeed, dist * maxSpeed / joystickRadius);
 
-                if (ticks % 1 == 0) {
-                  speed = Math.round(speed);
-                  direction = Math.round(direction) % 360;
+                speed = Math.round(speed);
+                direction = Math.round(direction) % 360;
 
-                  speedLabel.innerHTML = "Speed: " + speed;
-                  speedSlider.value = speed;
-                  directionLabel.innerHTML = "Direction: " + direction;
-                  directionSlider.value = direction;
-
-                  if (canSend) {
-                    if (prevSpeed != speed && prevDirection != direction) {
-                      xhr.open("GET", `/update?speed=${speed}&direction=${direction}`, true);
-                      xhr.send();
-                      canSend = false;
-                      prevSpeed = speed;
-                      prevDirection = direction;
-                    } else if (prevSpeed != speed) {
-                      xhr.open("GET", `/speed?value=${speed}`, true);
-                      xhr.send();
-                      canSend = false;
-                      prevSpeed = speed;
-                    } else if (prevDirection != direction) {
-                      xhr.open("GET", `/direction?value=${direction}`, true);
-                      xhr.send();
-                      canSend = false;
-                      prevDirection = direction;
-                    }
+                if (canSend) {
+                  if (prevSpeed != speed && prevDirection != direction) {
+                    xhr.open("GET", `/update?speed=${speed}&direction=${direction}`, true);
+                    xhr.send();
+                    prevSpeed = speed;
+                    prevDirection = direction;
+                    canSend = false;
+                  } else if (prevSpeed != speed) {
+                    xhr.open("GET", `/speed?value=${speed}`, true);
+                    xhr.send();
+                    prevSpeed = speed;
+                    canSend = false;
+                  } else if (prevDirection != direction) {
+                    xhr.open("GET", `/direction?value=${direction}`, true);
+                    xhr.send();
+                    prevDirection = direction;
+                    canSend = false;
                   }
                 }
 
-                drawJoystick();
+                drawJoystick(previewContext);
                 ticks++;
             };
             var closeXHR = new XMLHttpRequest();
@@ -290,12 +385,9 @@ String HTML() {
                 return; 
               x = w / 2;
               y = h / 2;
-              drawJoystick();
+              drawJoystick(previewContext);
               
-              speedLabel.innerHTML = "Speed: 0";
-              speedSlider.value = 0;
-
-              for (let i = 0; i < 5; i++) {
+              for (let i = 0; i < 4; i++) {
                 closeXHR.open("GET", "/speed?value=0", true);
                 closeXHR.send();
               }
@@ -304,61 +396,6 @@ String HTML() {
             }
             document.addEventListener('touchmove', function(e) {window.onmousemove(e)}, false);
             document.addEventListener('touchend', function(e) {window.onmouseup(e)}, false);
-        </script>
-
-        <p id="mode-label"></p>
-        <iframe src='/dynamic_values' width='300' height='300' name='DataBox' id='values-box'></iframe>
-        <canvas id="heading-canvas" width="300" height="300"/>
-        <p id="tof-label"></p>
-
-        <script type="text/javascript">
-          let values = document.getElementById("values-box");
-          values.style.display = "none";
-          let headingCanvas = document.getElementById("heading-canvas");
-          let headingRect = headingCanvas.getBoundingClientRect();
-          let headingWidth = headingRect.width;
-          let headingHeight = headingRect.height;
-          let heading = 0;
-          let headingContext = headingCanvas.getContext("2d");
-
-          let tofLabel = document.getElementById("tof-label");
-          let modeLabel = document.getElementById("mode-label");
-          
-          function update(event) {
-            console.log(event);
-            let page = values.contentWindow.document.body.innerHTML;
-            if (!page)
-              return;
-            let data = JSON.parse(page);
-            heading = data.heading;
-            tofLabel.innerHTML = "TOFs: " + data.tofs;
-            modeLabel.innerHTML = "Mode: " + data.mode;
-            drawHeading()
-          }
-
-          function drawHeading() {
-              rHeading = (-90 - heading) * Math.PI / 180;
-              headingContext.fillStyle = 'rgb(255, 255, 255)';
-              headingContext.fillRect(0, 0, 500, 500);
-
-              headingContext.beginPath();
-              headingContext.arc(headingWidth / 2, headingHeight / 2, 100, 0.14 * Math.PI + rHeading, 1.86 * Math.PI + rHeading, false);
-              headingContext.lineWidth = 5;
-              headingContext.strokeStyle = 'rgb(50, 50, 50)';
-              headingContext.stroke();
-
-              headingContext.translate(headingWidth / 2, headingHeight / 2);
-              headingContext.rotate(rHeading);
-              headingContext.fillStyle = 'rgb(50, 50, 50)';
-              headingContext.strokeRect(-40, -25, 80, 50);
-              headingContext.strokeRect(52, -45, 33, 90);
-              headingContext.fillStyle = 'rgb(255, 255, 255)';
-              headingContext.fillRect(70, -43, 20, 86);
-              headingContext.setTransform(1, 0, 0, 1, 0, 0);
-          }
-          drawHeading();
-
-          values.onload = update;
         </script>
       </body>
     </html>

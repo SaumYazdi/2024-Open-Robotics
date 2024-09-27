@@ -34,26 +34,35 @@ class LogicModule {
     void stop();
     void calibrate();
     float correctedHeading();
-    void logic(float direction, float speed);
+    void manual(float direction, float speed);
+    void logic(float direction = -1.0, float speed = -1.0);
     int update();
 
-    int simDistances[8] = {0,0,0,0,0,0,0,0};
-    int distances[8];
-    float heading = 0;
+    int simDistances[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    int distances[8]; // ToFs' distance
 
-  private:
+    float heading = 0; // Robot orientation/heading
+    float targetDirection = 0; // Target direction and speed for display/debugging
+    float targetSpeed = 0;
+
+    float robotX = 0.0; // Estimated robot position from ToFs
+    float robotY = 0.0;
+
+    int kickoffTicksMax = 0; // 300;
+    int kickoffTicks = 0; // Time where robot is driving straight forward
+    int lostTicks = 0; // Time where ball is not seen
+
+    float distance = 0; // Read ball distance and angle
+    float angle = 0;
+
     PowerfulBLDCdriver motor1;
     PowerfulBLDCdriver motor2;
     PowerfulBLDCdriver motor3;
     PowerfulBLDCdriver motor4;
     PowerfulBLDCdriver motor5;
-    float distance = 0;
-    float angle = 0;
-    float robotX = 0.0;
-    float robotY = 0.0;
-    float step = 100.0;
-    int kickoffTicks = 0;
-    int lostTicks = 0;
+
+  private:
+    float step = 100.0; // Simulation position step constant
 };
 
 #endif
