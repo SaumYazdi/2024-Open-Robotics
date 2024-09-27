@@ -76,7 +76,7 @@ class Robot:
         
 
 if __name__ == "__main__":
-    camera1 = DownFacingCamera("FrontBack", preview=False, draw_detections=False, camera_port=0)
+    camera1 = DownFacingCamera("FrontBack", preview=False, draw_detections=False, camera_port=0, detect_back=True)
     camera2 = DownFacingCamera("SideToSide", preview=False, draw_detections=False, camera_port=1)
     
     robot = Robot(camera1, camera2)
