@@ -145,15 +145,18 @@ def rgb_to_hsv(rgb) -> tuple:
     normal_rgb = [i / 255 for i in rgb]
     normal_hsv = colorsys.rgb_to_hsv(*normal_rgb)
     return (round(360 * normal_hsv[0]), round(255 * normal_hsv[1]), round(255 * normal_hsv[2]))
-    
+
+print("On", DEVICE)
+
 class DownFacingCamera:
     def __init__(self, window_name: str,
             preview: bool = False, draw_detections: bool = False,
             camera_port: int = 0, detect_back: bool = False):
         
         if DEVICE == "pi":
+            print(f"Starting on Picamera number {camera_port}") 
             self.video_stream = Picamera2(camera_port)
-            [print(mode) for mode in CAMERA_SENSOR_MODES]
+            # [print(mode) for mode in CAMERA_SENSOR_MODES]
             raw_config = CAMERA_SENSOR_MODES[1]
             raw_config["fps"] = 60
             config = self.video_stream.create_video_configuration(
@@ -208,14 +211,14 @@ class DownFacingCamera:
     def get_mask(self, frame):
         blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        lower = (0, 0, 245) # BGR ????
-        upper = (177, 188, 255)
-        mask = cv2.inRange(frame, lower, upper)
-        cv2.imshow("mask", mask)
-        key = cv2.waitKey(1) & 0xFF
-
-        print(mask)
+        lower = (216, 0, 0)
+        upper = (255, 50, 5)
+        mask = cv2.inRange(rgb, lower, upper)
+        # mask_color = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
+        # cv2.imshow("mask", cv2.bitwise_and(rgb, mask_color))
+        # key = cv2.waitKey(1) & 0xFF
 
         return mask
         
@@ -289,7 +292,7 @@ class DownFacingCamera:
                 cnt = sorted_contours[i]
                 
                 # Skip over contour if size is too small
-                if cnt.size < 20:
+                if cnt.size < 25:
                     continue
                     
                 # Compute center of contour
@@ -315,7 +318,7 @@ class DownFacingCamera:
             if len(points) > 4:
                 c = cv2.convexHull(numpy.array(points, dtype=numpy.int32))
                 
-                if c.size > 4:
+                if c.size > 4 * 2:
                     ellipse = cv2.fitEllipse(c)
                     center, size, angle = ellipse
                     
@@ -389,13 +392,6 @@ class DownFacingCamera:
         
         frame = self.compute(frame)
 
-        if self.preview == True:
-            cv2.imshow(self.window_name, frame)
-            key = cv2.waitKey(1) & 0xFF
-            
-            if key == ord("q"):
-                return
-        
         return frame
 
     def set_update(self, event: Callable):
@@ -420,25 +416,28 @@ class DownFacingCamera:
         prev = perf_counter()
         while True:
             # Praying that the robot does not stop during gameplay
-            try:
-                if (ticks % FPS_UPDATE) == 0:
-                    now = perf_counter()
-                    dt = now - prev
-                    prev = now
-                    self.fps = FPS_UPDATE / dt 
+            # try:
+            if (ticks % FPS_UPDATE) == 0:
+                now = perf_counter()
+                dt = now - prev
+                prev = now
+                self.fps = FPS_UPDATE / dt 
 
-                    if self.preview:
-                        cv2.setWindowTitle(self.window_name, f"FPS: {self.fps}")
+                # if self.preview:
+                    # cv2.setWindowTitle(self.window_name, f"FPS: {self.fps}")
 
-                self.image = self._update()
-                if self.image is None:
-                    break
+            self.image = self._update()
+            if self.image is None:
+                break
 
-                for event in self.update_events:
-                    event()
+            # if self.preview == True:
+                # cv2.imshow(self.window_name, self.image)
+                
+            for event in self.update_events:
+                event()
 
-            except Exception as exc:
-                print(exc)
+            # except Exception as exc:
+                # print(exc)
             
             ticks += 1
 
@@ -453,9 +452,22 @@ class DownFacingCamera:
 
 if __name__ == "__main__":
     threads = []
-    camera1 = DownFacingCamera("Ball Detector", preview=True, draw_detections=True, camera_port=0, detect_back=True)
-    # camera2 = DownFacingCamera("Ball Detector", preview=True, draw_detections=True, camera_port=1)
+    
+    camera1 = DownFacingCamera("Camera1", preview=True, draw_detections=True, camera_port=0, detect_back=True)
+    camera2 = DownFacingCamera("Camera2", preview=True, draw_detections=True, camera_port=1)
+    
+    sleep(1)
+    
+    def show_cameras():
+        while True:
+            if camera1.image is not None: cv2.imshow("FrontBack", camera1.image)
+            if camera2.image is not None: cv2.imshow("SideToSide", camera2.image)
+            cv2.waitKey(1)
+    
     threads.append(Thread(target=camera1.start))
-    # threads.append(Thread(target=camera2.start))
+    threads.append(Thread(target=camera2.start))
+    threads.append(Thread(target=show_cameras))
+    
     for thread in threads:
         thread.start()
+    
