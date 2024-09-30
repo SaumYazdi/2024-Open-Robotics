@@ -61,7 +61,64 @@ std::vector<Wall> walls = {
     {{0, FIELD_HEIGHT}, {FIELD_WIDTH, FIELD_HEIGHT}}  // Bottom wall
 };
 
-float threeSixty = static_cast<float>(360);
+// IMU Functions
+void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, bool degrees = false) {
+  float sqr = sq(qr);
+  float sqi = sq(qi);
+  float sqj = sq(qj);
+  float sqk = sq(qk);
+
+  ypr->yaw = atan2(2.0 * (qi * qj + qk * qr), (sqi - sqj - sqk + sqr));
+  
+  if (degrees) {
+    ypr->yaw *= RAD_TO_DEG;
+  }
+}
+
+void quaternionToEulerRV(sh2_RotationVectorWAcc_t* rotational_vector, euler_t* ypr, bool degrees = false) {
+  quaternionToEuler(rotational_vector->real, rotational_vector->i, rotational_vector->j, rotational_vector->k, ypr, degrees);
+}
+
+float bytesToFloat(uint8_t *bytes) {
+  static_assert(sizeof(float) == 4, "Float size shuold be 4 bytes.");
+  float tempFloat;
+  memcpy(&tempFloat, bytes, 4);
+  return tempFloat;
+}
+
+Point* lineIntersection(Point p1, Point p2, Point p3, Point p4) {
+    double x1 = p1.x, y1 = p1.y;
+    double x2 = p2.x, y2 = p2.y;
+    double x3 = p3.x, y3 = p3.y;
+    double x4 = p4.x, y4 = p4.y;
+
+    // Calculate the determinant (denominator)
+    double denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+    if (denom == 0) {
+        // Lines are parallel or coincident
+        return nullptr;
+    }
+
+    // Calculate intersection point
+    double intersect_x = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
+    double intersect_y = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
+
+    // Check if the intersection is within both line segments
+    if (min(x1, x2) <= intersect_x && intersect_x <= max(x1, x2) &&
+        min(y1, y2) <= intersect_y && intersect_y <= max(y1, y2) &&
+        min(x3, x4) <= intersect_x && intersect_x <= max(x3, x4) &&
+        min(y3, y4) <= intersect_y && intersect_y <= max(y3, y4)) {
+        return new Point{intersect_x, intersect_y};
+    }
+    return nullptr;
+}
+
+const float threeSixty = static_cast<float>(360);
+
+int byteCounter = 0;
+const int startSequenceLength = 4;
+const int BYTE_COUNT = 12;
+char transmissionData[BYTE_COUNT];
 
 Adafruit_BNO08x bno08x(BNO08X_RESET);
 sh2_SensorValue_t sensorValue;
@@ -72,6 +129,8 @@ const int tofOffset = 100;
 const float tofAngles[8] = { -33.5, -68.5, -113.5, -158.5, 158.5, 113.5, 68.5, 33.5 };
 
 LogicModule::LogicModule() {
+  // DEBUGGING
+  Serial.begin(115200);
   Serial.println("Initialised LogicModule");
 
   // Pi5 Serial
@@ -79,6 +138,18 @@ LogicModule::LogicModule() {
   Serial1.end();
   Serial1.begin(115200);
 
+  // Initialise IMU, TOFs and motors
+  setup();
+
+  // Initalise motor event handler
+  events.motor1 = &motor1;
+  events.motor2 = &motor2;
+  events.motor3 = &motor3;
+  events.motor4 = &motor4;
+  events.motor5 = &motor5;
+}
+
+void LogicModule::setup() {
   Wire.setSCL(9);
   Wire.setSDA(8);
   Wire.begin(); 
@@ -148,9 +219,9 @@ LogicModule::LogicModule() {
   }
   setReports(SH2_ARVR_STABILIZED_RV, 5000); // Set report for IMU
 
-  pinMode(switchDown,INPUT_PULLDOWN);
-  pinMode(switchMiddle,OUTPUT);
-  pinMode(switchUp,INPUT_PULLDOWN);
+  pinMode(switchDown, INPUT_PULLDOWN);
+  pinMode(switchMiddle, OUTPUT);
+  pinMode(switchUp, INPUT_PULLDOWN);
 
   for (int i = 0; i < 5; i++) {
     tofs[i] = SteelBarToF(tofAddresses[i], &Wire);
@@ -163,58 +234,6 @@ LogicModule::LogicModule() {
 
   // Set initial heading
   initialHeading = ypr.yaw;
-}
-
-// IMU Functions
-void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, bool degrees = false) {
-  float sqr = sq(qr);
-  float sqi = sq(qi);
-  float sqj = sq(qj);
-  float sqk = sq(qk);
-
-  ypr->yaw = atan2(2.0 * (qi * qj + qk * qr), (sqi - sqj - sqk + sqr));
-  
-  if (degrees) {
-    ypr->yaw *= RAD_TO_DEG;
-  }
-}
-
-void quaternionToEulerRV(sh2_RotationVectorWAcc_t* rotational_vector, euler_t* ypr, bool degrees = false) {
-  quaternionToEuler(rotational_vector->real, rotational_vector->i, rotational_vector->j, rotational_vector->k, ypr, degrees);
-}
-
-float bytesToFloat(uint8_t *bytes) {
-  static_assert(sizeof(float) == 4, "Float size shuold be 4 bytes.");
-  float f;
-  memcpy(&f, bytes, 4);
-  return f;
-}
-
-Point* lineIntersection(Point p1, Point p2, Point p3, Point p4) {
-    double x1 = p1.x, y1 = p1.y;
-    double x2 = p2.x, y2 = p2.y;
-    double x3 = p3.x, y3 = p3.y;
-    double x4 = p4.x, y4 = p4.y;
-
-    // Calculate the determinant (denominator)
-    double denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-    if (denom == 0) {
-        // Lines are parallel or coincident
-        return nullptr;
-    }
-
-    // Calculate intersection point
-    double intersect_x = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
-    double intersect_y = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
-
-    // Check if the intersection is within both line segments
-    if (min(x1, x2) <= intersect_x && intersect_x <= max(x1, x2) &&
-        min(y1, y2) <= intersect_y && intersect_y <= max(y1, y2) &&
-        min(x3, x4) <= intersect_x && intersect_x <= max(x3, x4) &&
-        min(y3, y4) <= intersect_y && intersect_y <= max(y3, y4)) {
-        return new Point{intersect_x, intersect_y};
-    }
-    return nullptr;
 }
 
 void LogicModule::setReports(sh2_SensorId_t reportType, long report_interval) {
@@ -318,26 +337,40 @@ void LogicModule::moveRobot(float direction, float rotation, int targetSpeed = 9
 
 bool LogicModule::readBall() {
   if (Serial1.available() > 0) {
-    char recv = Serial1.read();
+    char receviedChar = Serial1.read();
 
-    // To prevent uart interface going out of order, at the end of the char sequence, reset bytes index
-    if (data[(byteIndex - 2) % NUM_BYTES] == 0b10101011 && data[(byteIndex - 1) % NUM_BYTES] == 0b11001101) {byteIndex = 0;}
+    transmissionData[byteCounter] = receviedChar;
 
-    data[byteIndex] = recv;
+    // To prevent uart interface going out of order, at the start of the char sequence, reset bytes index
+    if (transmissionData[byteCounter] == 0xab &&
+        transmissionData[(byteCounter + 1) % BYTE_COUNT] == 0xcd &&
+        transmissionData[(byteCounter + 2) % BYTE_COUNT] == 0xef &&
+        transmissionData[(byteCounter + 3) % BYTE_COUNT] == 0x69) {byteCounter = 0; /*Serial.println();*/}
 
     // Once collected all bytes, reset the byte counter
-    if (++byteIndex >= NUM_BYTES) {
-      byteIndex = 0;
+    if (++byteCounter >= BYTE_COUNT) {
+      /*
+      for (int i = 0; i < BYTE_COUNT; i++) {
+        Serial.print(transmissionData[i], HEX);
+        Serial.print(", ");
+      }
+      Serial.print(byteCounter);
+      Serial.print(" | ");
+      String text = "angle: " + String(ballAngle) + ", dist: " + String(ballDistance);
+      Serial.println(text);
+      */
+
+      byteCounter = 0;
       
-      uint8_t distanceBytes[4] = {data[0], data[1], data[2], data[3]};
+      uint8_t distanceBytes[4] = {transmissionData[startSequenceLength], transmissionData[startSequenceLength + 1], transmissionData[startSequenceLength + 2], transmissionData[startSequenceLength + 3]};
       ballDistance = bytesToFloat(distanceBytes);
 
-      uint8_t angleBytes[4] = {data[4], data[5], data[6], data[7]};
+      uint8_t angleBytes[4] = {transmissionData[startSequenceLength + 4], transmissionData[startSequenceLength + 5], transmissionData[startSequenceLength + 6], transmissionData[startSequenceLength + 7]};
       ballAngle = bytesToFloat(angleBytes);
-
-      seesBall = true;
-      return true;
     }
+
+    seesBall = true;
+    return true;
   }
 
   seesBall = false;
@@ -524,9 +557,6 @@ void LogicModule::logic(float direction, float speed) {
   }
 
   if (lostTicks < 10) {
-
-    motor5.setSpeed(90000000);
-
     if (hasBall) {
       if (-30 < correction && correction < 30) {
         moveRobot(correction, correction * -20, 60000000);
@@ -555,6 +585,7 @@ void LogicModule::logic(float direction, float speed) {
 }
 
 int LogicModule::update() {
+  events.update();
   digitalWrite(switchMiddle, HIGH);
 
   int mode;

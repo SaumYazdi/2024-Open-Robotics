@@ -1,3 +1,6 @@
+#ifndef PowerfulBLDCdriver_h
+#define PowerfulBLDCdriver_h
+
 /*!
  * @file PowerfulBLDCdriver.h
  * 
@@ -239,3 +242,5 @@ private:
   uint8_t QDRERROR1;
   uint8_t QDRERROR2;
 };
+
+#endif

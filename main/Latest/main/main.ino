@@ -2,6 +2,8 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
+#define DEBUG_WITH_WEBSERVER false
+
 Bot* bot;
 
 // Global robot values
@@ -36,6 +38,8 @@ WebServer server(80);
 void setup() {
   bot = new Bot();
 
+  if (DEBUG_WITH_WEBSERVER == false) {return;}
+
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(local_IP, gateway, subnet); // Configure static IP
    
@@ -57,6 +61,8 @@ void setup() {
 
 void loop() {
   bot->update();
+  
+  if (DEBUG_WITH_WEBSERVER == false) {return;}
   
   // Assign the server to handle the clients
   server.handleClient();
@@ -213,8 +219,8 @@ String HTML() {
 
           let modeLabel = document.getElementById("mode-label");
           
-          let ballDistance = null;
-          let ballAngle = null;
+          let ballDistance = 0;
+          let ballAngle = 0;
 
           let dataReq = new XMLHttpRequest();
           dataReq.onload = update;
@@ -237,7 +243,7 @@ String HTML() {
             dataReq.send(null);
           }
 
-          let headingRadius = 50;
+          let headingRadius = 80;
           let distanceScaleFactor = .2;
           let rHeading, rAngle, prevRot, diff, distance;
           function drawHeading() {
@@ -260,6 +266,20 @@ String HTML() {
             headingContext.fillStyle = 'rgb(255, 255, 255)';
             headingContext.fillRect(70 * scale, -43 * scale, 20 * scale, 86 * scale);
 
+            if (ballAngle != 0 && ballDistance > 0) {
+              let ballRadius = 33 * scale;
+              let ballDistanceScale = 9 * scale;
+              let bx = ballDistanceScale * ballDistance * Math.cos(ballAngle);
+              let by = ballDistanceScale * ballDistance * Math.sin(ballAngle);
+              console.log(ballAngle);
+
+              headingContext.beginPath();
+              headingContext.arc(bx, by, ballRadius, 0, 2 * Math.PI, false);
+              headingContext.fillStyle = 'rgb(250, 50, 5)';
+              headingContext.fill();
+
+            }
+            
             prevRot = 0;
             let i = 0;
             for (let tofAngle in tofs) {
@@ -285,15 +305,6 @@ String HTML() {
 
               i++;
             }
-
-            let ballRadius = 12 * scale;
-            let ballDistanceScale = 6 * scale;
-            headingContext.beginPath();
-            let bx = ballDistanceScale * ballDistance * Math.cos(ballAngle);
-            let by = ballDistanceScale * ballDistance * Math.sin(ballAngle);
-            headingContext.arc(bx, by, ballRadius, 0, 2 * Math.PI, false);
-            headingContext.fillStyle = 'rgb(250, 50, 5)';
-            headingContext.fill();
 
             headingContext.setTransform(1, 0, 0, 1, 0, 0);
           }

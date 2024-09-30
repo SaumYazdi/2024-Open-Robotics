@@ -1,13 +1,14 @@
 #ifndef LogicModule_h
 #define LogicModule_h
 
+#include "EventHandler.h"
 #include "Wire.h"
-#include "PowerfulBLDCdriver.h"
 #include <math.h>
 #include <vector>
 #include <cmath>
 #include <limits>
 #include <Adafruit_BNO08x.h>
+#include "PowerfulBLDCdriver.h"
 
 // Constants
 #define CALIBRATION 0xA2
@@ -20,6 +21,7 @@ const double FIELD_HEIGHT = 2430.0;
 class LogicModule {
   public:
     LogicModule();
+    void setup();
     void setReports(sh2_SensorId_t reportType, long report_interval);
     float anglePolynomial(float x);
     float distancePolynomial(float x);
@@ -41,10 +43,6 @@ class LogicModule {
     int simDistances[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     int distances[8]; // ToFs' distance
 
-    const int NUM_BYTES = 10;
-    int byteIndex = 0;
-    char data[4];
-
     float initialHeading = 0; // Robot orientation/heading
     float targetDirection = 0; // Target direction and speed for display/debugging
     float targetSpeed = 0;
@@ -65,6 +63,8 @@ class LogicModule {
     PowerfulBLDCdriver motor3;
     PowerfulBLDCdriver motor4;
     PowerfulBLDCdriver motor5;
+
+    EventHandler events;
 
   private:
     float step = 100.0; // Simulation position step constant
