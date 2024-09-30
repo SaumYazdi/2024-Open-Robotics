@@ -129,16 +129,13 @@ const int tofOffset = 100;
 const float tofAngles[8] = { -33.5, -68.5, -113.5, -158.5, 158.5, 113.5, 68.5, 33.5 };
 
 LogicModule::LogicModule() {
-  // DEBUGGING
-  Serial.begin(115200);
   Serial.println("Initialised LogicModule");
 
-  // Pi5 Serial
+  // Initialise RPI-5 serial communication.
   Serial1.flush();
   Serial1.end();
   Serial1.begin(115200);
 
-  // Initialise IMU, TOFs and motors
   setup();
 
   // Initalise motor event handler
@@ -149,6 +146,9 @@ LogicModule::LogicModule() {
   events.motor5 = &motor5;
 }
 
+/*!
+* Initialise IMU, TOFs and motors.
+*/
 void LogicModule::setup() {
   Wire.setSCL(9);
   Wire.setSDA(8);
@@ -242,67 +242,6 @@ void LogicModule::setReports(sh2_SensorId_t reportType, long report_interval) {
   }
 }
 
-// Polynomial function for angle
-float LogicModule::anglePolynomial(float x) {
-
-  float newAngle = abs(x);
-
-  int n = 1;
-
-  if (x < 0) {n = -1;}
-
-  if (newAngle < 5) { return 0 * n; }
-  else if (newAngle < 15) { return 25 * n; }
-  else if (newAngle < 25) { return 35 * n; }
-  else if (newAngle < 35) { return 45 * n; }
-  else if (newAngle < 45) { return 60 * n; }
-  else if (newAngle < 60) { return 100 * n; }
-  else if (newAngle < 90) { return 180 * n; }
-  else if (newAngle < 115) { return 200 * n; }
-  else if (newAngle < 135) { return 220 * n; }
-  else if (newAngle < 160) { return 250 * n; }
-  else if (newAngle < 180) { return 270 * n; }
-
-  return (0.00000001184 * powf(x, 5)) + 
-        (-0.000005165 * powf(x, 4)) +
-        (0.000804 * powf(x, 3)) + 
-        (-0.05637 * powf(x, 2)) +
-        (3.243 * x);
-}
-
-// Polynomial function for distance
-float LogicModule::distancePolynomial(float x) {
-  return (-0.0003651 * powf(x, 2)) + 
-        (-0.0004762 * x) + 1.343;
-}
-
-float LogicModule::calculateFinalBallDirection() {
-  float tempAngle = ballAngle;
-
-  if (tempAngle > 180) {
-    tempAngle -= 360;
-  }
-
-  bool isNegative = tempAngle < 0;  // Check if the angle is negative
-
-  float unscaledAngle;
-
-  if (isNegative) {
-    unscaledAngle = -anglePolynomial(-tempAngle);
-  } else {
-    unscaledAngle = anglePolynomial(tempAngle);
-  }
-
-  float scalar;
-  if (ballDistance > 30 && (ballAngle > -140 && ballAngle < 140)) {
-    scalar = 0;
-  } else {
-    scalar = 1;
-  } //= min(max(distancePolynomial(ballDistance),0),1);
-
-  return tempAngle + (unscaledAngle - tempAngle) * scalar;
-}
-
 void LogicModule::moveRobot(float direction, float rotation, int targetSpeed = 90000000) {
 
   // Convert angle to radians
@@ -329,10 +268,10 @@ void LogicModule::moveRobot(float direction, float rotation, int targetSpeed = 9
   float scaledSpeedX4 = speedX4 * scaleFactor + rotation * rotationScaling;
 
   // Set the motor speeds
-  motor1.setSpeed(scaledSpeedY1);
-  motor2.setSpeed(scaledSpeedX2);
-  motor3.setSpeed(scaledSpeedY3);
-  motor4.setSpeed(scaledSpeedX4);
+  events.setSpeed(1, scaledSpeedY1);
+  events.setSpeed(2, scaledSpeedX2);
+  events.setSpeed(3, scaledSpeedY3);
+  events.setSpeed(4, scaledSpeedX4);
 }
 
 bool LogicModule::readBall() {
@@ -482,11 +421,11 @@ void LogicModule::stop() {
 
   kickoffTicks = 0;
 
-  motor1.setSpeed(0);
-  motor2.setSpeed(0);
-  motor3.setSpeed(0);
-  motor4.setSpeed(0);
-  motor5.setSpeed(0);
+  events.stop(1);
+  events.stop(2);
+  events.stop(3);
+  events.stop(4);
+  events.stop(5);
 }
 
 void LogicModule::calibrate() {
@@ -516,10 +455,10 @@ void LogicModule::manual(float direction, float speed) {
       float speedX4 = sinf(rad) * speed;
       
       // Set the motor speeds
-      motor1.setSpeed(speedY1);
-      motor2.setSpeed(speedX2);
-      motor3.setSpeed(speedY3);
-      motor4.setSpeed(speedX4);
+      events.setSpeed(1, speedY1);
+      events.setSpeed(2, speedX2);
+      events.setSpeed(3, speedY3);
+      events.setSpeed(4, speedX4);
 
       targetDirection = deg;
       targetSpeed = speed;
@@ -529,11 +468,44 @@ void LogicModule::manual(float direction, float speed) {
   }
 }
 
+float a1 = -0.000000021241;
+float a2 = 0.000008242875;
+float a3 = -0.000935078305;
+float a4 = 0.015561992385;
+float a5 = 3.204488371526;
+float a6 = 2.928321839083;
+float angleFunction(float x) {
+  return a1 * powf(x, 5) + a2 * powf(x, 4) + a3 * powf(x, 3) + a4 * powf(x, 2) + a5 * x + a6; 
+}
+
+float d1 = -0.000008789059;
+float d2 = 0.000993367117;
+float d3 = 1.003766459919;
+float distanceFunction(float x) {
+  return d1 * (x * x) + d2 * x + d3;
+}
+
+float LogicModule::calculateFinalDirection(float correction) {
+  float angle = ballAngle;
+
+  float derivedAngle;
+  if (angle >= 0) {
+    derivedAngle = angleFunction(angle);
+  } else {
+    derivedAngle = -angleFunction(abs(angle));
+  }
+
+  float derivedDistance = max(distanceFunction(ballDistance * 10), 0); // Polynomial function in millimetres
+  float scaledAngle = angle + (derivedAngle - angle) * derivedDistance;
+
+  return scaledAngle;
+}
+
 void LogicModule::logic(float direction, float speed) {
   float correction = correctedHeading();
 
   readBall();
-  readTOFs();
+  // readTOFs();
 
   bool hasBall = (ballDistance < 20) && (-15 <= ballAngle && ballAngle <= 15);
 
@@ -541,39 +513,54 @@ void LogicModule::logic(float direction, float speed) {
     correction -= 360;
   }
 
-  odometry(correction);
+  // MUST FIX LOCALISATION
+  // odometry(correction);
   
+  // Go straight forward at kickoff for a given amount of ticks.
   if (kickoffTicks < kickoffTicksMax) {
     kickoffTicks += 1;
-    motor5.setSpeed(80000000);
+    events.setSpeed(5, 80000000);
     moveRobot(0, correction * -15, 90000000);
     return;
   }
 
+  // Increment lostTicks for every update that the ball is not seen.
   if (seesBall) { 
     lostTicks = 0; 
   } else {
     lostTicks += 1;
   }
 
+  // In game
   if (lostTicks < 10) {
-    if (hasBall) {
-      if (-30 < correction && correction < 30) {
-        moveRobot(correction, correction * -20, 60000000);
-      } else {
-        moveRobot(correction, correction * -10, 50000000);
-      }
-    } else if (ballDistance < 30 && (ballAngle < -90 || ballAngle > 90)) {
-      moveRobot(calculateFinalBallDirection(), -5 * correction, 15000000);
-    } else if (ballDistance < 30) {
-      moveRobot(calculateFinalBallDirection(), -5 * correction, 25000000);
-    } else {
-      moveRobot(calculateFinalBallDirection(), -5 * correction, 60000000);
-    }
-  }
-  else {
+    float direction = calculateFinalDirection(correction);
 
-    motor5.setSpeed(0);
+    float deg = direction - 45;
+    float rad = deg * DEG_TO_RAD;
+
+    speed = 60000000;
+    float speedY1 = -cosf(rad) * speed;
+    float speedX2 = -sinf(rad) * speed;
+    float speedY3 = cosf(rad) * speed;
+    float speedX4 = sinf(rad) * speed;
+    
+    events.setSpeed(1, speedY1);
+    events.setSpeed(2, speedX2);
+    events.setSpeed(3, speedY3);
+    events.setSpeed(4, speedX4);
+
+    bool hasBall = (ballDistance < 20) && (-15 <= ballAngle && ballAngle <= 15);
+    if (hasBall) {
+      events.setSpeed(5, 90000000);
+    } else {
+      events.stop(5);
+    }
+
+  // Ball not seen for a bit
+  } else {
+    Serial.println("LOST clat");
+    
+    events.stop(5);
 
     if (ballAngle > 0) {
       moveRobot(0, -200, 0);
@@ -600,5 +587,4 @@ int LogicModule::update() {
   }
 
   return mode;
-  // delay(1); // Adjust delay as needed
 }

@@ -23,7 +23,7 @@ String status = "Connected";
 
 // Specifying the SSID and Password of the AP
 const char* ap_ssid = "Shenzhen Weinan Electronics Co."; // Access Point SSID
-const char* ap_password= "admin654"; // Access Point Password
+const char* ap_password = "admin987"; // Access Point Password
 uint8_t max_connections = 1; // Maximum Connection Limit for AP
 int current_stations = 0, new_stations = 0;
 
@@ -36,6 +36,9 @@ IPAddress IP;
 WebServer server(80);
 
 void setup() {
+  // DEBUGGING
+  // Serial.begin(115200);
+  
   bot = new Bot();
 
   if (DEBUG_WITH_WEBSERVER == false) {return;}

@@ -16,9 +16,9 @@ class EventHandler {
     PowerfulBLDCdriver *motor5;
 
   private:
+    const int commandInterval = 100; // in milliseconds; delay to send i2c commands to update motor speed
     unsigned long prevTime = millis();
     unsigned long deltaTime = 0;
-    int commandInterval = 100;
     int motorNumber;
     uint8_t command;
     int32_t value;

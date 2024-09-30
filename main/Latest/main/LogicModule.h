@@ -23,9 +23,7 @@ class LogicModule {
     LogicModule();
     void setup();
     void setReports(sh2_SensorId_t reportType, long report_interval);
-    float anglePolynomial(float x);
-    float distancePolynomial(float x);
-    float calculateFinalBallDirection();
+    float calculateFinalDirection(float correction);
     void moveRobot(float direction, float rotation, int targetSpeed);
     bool readBall();
     void readIMU();
