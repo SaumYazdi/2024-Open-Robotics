@@ -17,18 +17,11 @@ void Bot::update() {
       logic.logic();
 
       // REMOTE CONTROL STUFF
-      // if (turnSpeed != 0) {
-      //   logic.motor1.setSpeed(turnSpeed);
-      //   logic.motor2.setSpeed(turnSpeed);
-      //   logic.motor3.setSpeed(turnSpeed);
-      //   logic.motor4.setSpeed(turnSpeed);
+      // if (speed != 0) {
+      //   logic.motor5.setSpeed(80000000);
+      //   logic.manual(direction, speed);
       // } else {
-      //   if (speed != 0) {
-      //     logic.motor5.setSpeed(80000000);
-      //     logic.manual(direction, speed);
-      //   } else {
-      //     logic.logic();
-      //   }
+      //   logic.logic();
       // }
       break;
   }

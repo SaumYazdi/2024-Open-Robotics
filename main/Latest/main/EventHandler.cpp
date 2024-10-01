@@ -9,8 +9,9 @@ void EventHandler::stop(int motorNumber) {
   commands[motorNumber - 1] = command;
 }
 
-void EventHandler::setSpeed(int motorNumber, int speed) {
-  String command = SETSPEED + String(speed);
+void EventHandler::setSpeed(int motorNumber, float speed) {
+  float adjustedSpeed = maxMotorSpeed * min(max(speed, -1.0), 1.0);
+  String command = SETSPEED + String(int(adjustedSpeed));
   commands[motorNumber - 1] = command;
 }
 

@@ -24,7 +24,7 @@ class LogicModule {
     void setup();
     void setReports(sh2_SensorId_t reportType, long report_interval);
     float calculateFinalDirection(float correction);
-    void moveRobot(float direction, float rotation, int targetSpeed);
+    void moveRobot(float direction, float rotation, float targetSpeed);
     bool readBall();
     void readIMU();
     void readTOFs();
@@ -42,8 +42,6 @@ class LogicModule {
     int distances[8]; // ToFs' distance
 
     float initialHeading = 0; // Robot orientation/heading
-    float targetDirection = 0; // Target direction and speed for display/debugging
-    float targetSpeed = 0;
 
     float robotX = 0.0; // Estimated robot position from ToFs
     float robotY = 0.0;
@@ -66,6 +64,8 @@ class LogicModule {
 
   private:
     float step = 100.0; // Simulation position step constant
+
+    const float lostRotateSpeed = 10;
 };
 
 #endif

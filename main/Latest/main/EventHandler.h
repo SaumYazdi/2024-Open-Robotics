@@ -6,7 +6,7 @@
 class EventHandler {
   public:
     void stop(int motorNumber);
-    void setSpeed(int motorNumber, int speed);
+    void setSpeed(int motorNumber, float speed);
     void update();
 
     PowerfulBLDCdriver *motor1;
@@ -16,7 +16,9 @@ class EventHandler {
     PowerfulBLDCdriver *motor5;
 
   private:
-    const int commandInterval = 100; // in milliseconds; delay to send i2c commands to update motor speed
+    const int maxMotorSpeed = 90000000;
+
+    const int commandInterval = 150; // in milliseconds; delay to send i2c commands to update motor speed
     unsigned long prevTime = millis();
     unsigned long deltaTime = 0;
     int motorNumber;

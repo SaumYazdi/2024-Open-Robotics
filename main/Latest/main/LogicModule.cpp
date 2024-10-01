@@ -242,38 +242,6 @@ void LogicModule::setReports(sh2_SensorId_t reportType, long report_interval) {
   }
 }
 
-void LogicModule::moveRobot(float direction, float rotation, int targetSpeed = 90000000) {
-
-  // Convert angle to radians
-  float rad = (direction - 45) * DEG_TO_RAD;
-
-  // Calculate motor speeds
-  float speedY1 = -cosf(rad);
-  float speedX2 = -sinf(rad);
-  float speedY3 = cosf(rad);
-  float speedX4 = sinf(rad);
-
-  // Find the maximum absolute speed among the motors
-  float maxRawSpeed = max(max(abs(speedY1), abs(speedX2)), max(abs(speedY3),abs(speedX4)));
-
-  // Scale factor to ensure the largest motor speed is at maxspeed
-  float scaleFactor = targetSpeed / maxRawSpeed;
-
-  float rotationScaling = 100000;
-
-  // Apply the scale factor to all motor speeds
-  float scaledSpeedY1 = speedY1 * scaleFactor + rotation * rotationScaling;
-  float scaledSpeedX2 = speedX2 * scaleFactor + rotation * rotationScaling;
-  float scaledSpeedY3 = speedY3 * scaleFactor + rotation * rotationScaling;
-  float scaledSpeedX4 = speedX4 * scaleFactor + rotation * rotationScaling;
-
-  // Set the motor speeds
-  events.setSpeed(1, scaledSpeedY1);
-  events.setSpeed(2, scaledSpeedX2);
-  events.setSpeed(3, scaledSpeedY3);
-  events.setSpeed(4, scaledSpeedX4);
-}
-
 bool LogicModule::readBall() {
   if (Serial1.available() > 0) {
     char receviedChar = Serial1.read();
@@ -417,7 +385,6 @@ void LogicModule::odometry(float direction) {
 
 void LogicModule::stop() {
   bool seesBall = readBall();
-  targetSpeed = 0;
 
   kickoffTicks = 0;
 
@@ -459,9 +426,6 @@ void LogicModule::manual(float direction, float speed) {
       events.setSpeed(2, speedX2);
       events.setSpeed(3, speedY3);
       events.setSpeed(4, speedX4);
-
-      targetDirection = deg;
-      targetSpeed = speed;
     } else {
       stop();
     }
@@ -483,6 +447,49 @@ float d2 = 0.000993367117;
 float d3 = 1.003766459919;
 float distanceFunction(float x) {
   return d1 * (x * x) + d2 * x + d3;
+}
+
+void LogicModule::moveRobot(float direction, float rotation, float targetSpeed = 1.0) {
+
+  // Convert angle to radians
+  float rad = (direction - 45) * DEG_TO_RAD;
+
+  // Calculate motor speeds
+  float speedY1 = -cosf(rad);
+  float speedX2 = -sinf(rad);
+  float speedY3 = cosf(rad);
+  float speedX4 = sinf(rad);
+
+  // Find the maximum absolute speed among the motors
+  float maxRawSpeed = max(max(abs(speedY1), abs(speedX2)), max(abs(speedY3),abs(speedX4)));
+
+  // Scale factor to ensure the largest motor speed is at maxspeed
+  float scaleFactor = targetSpeed / maxRawSpeed;
+
+  // Factor to correct the robot's heading when misaligned.
+  float rotationScaling = -0.012;
+
+  // Apply the scale factor to all motor speeds
+  float scaledSpeedY1 = speedY1 * scaleFactor + rotation * rotationScaling;
+  float scaledSpeedX2 = speedX2 * scaleFactor + rotation * rotationScaling;
+  float scaledSpeedY3 = speedY3 * scaleFactor + rotation * rotationScaling;
+  float scaledSpeedX4 = speedX4 * scaleFactor + rotation * rotationScaling;
+
+  // If any of the speeds are above 1.0, adjust accordingly.
+  maxRawSpeed = max(max(abs(scaledSpeedY1), abs(scaledSpeedX2)), max(abs(scaledSpeedY3), abs(scaledSpeedX4)));
+  if (maxRawSpeed > 1.0) {
+    scaleFactor = 1.0 / maxRawSpeed;
+    scaledSpeedY1 *= scaleFactor;
+    scaledSpeedX2 *= scaleFactor;
+    scaledSpeedY3 *= scaleFactor;
+    scaledSpeedX4 *= scaleFactor;
+  }
+
+  // Set the motor speeds
+  events.setSpeed(1, scaledSpeedY1);
+  events.setSpeed(2, scaledSpeedX2);
+  events.setSpeed(3, scaledSpeedY3);
+  events.setSpeed(4, scaledSpeedX4);
 }
 
 float LogicModule::calculateFinalDirection(float correction) {
@@ -519,8 +526,8 @@ void LogicModule::logic(float direction, float speed) {
   // Go straight forward at kickoff for a given amount of ticks.
   if (kickoffTicks < kickoffTicksMax) {
     kickoffTicks += 1;
-    events.setSpeed(5, 80000000);
-    moveRobot(0, correction * -15, 90000000);
+    events.setSpeed(5, 0.9);
+    moveRobot(0, correction * -15, 1.0);
     return;
   }
 
@@ -535,38 +542,25 @@ void LogicModule::logic(float direction, float speed) {
   if (lostTicks < 10) {
     float direction = calculateFinalDirection(correction);
 
-    float deg = direction - 45;
-    float rad = deg * DEG_TO_RAD;
-
-    speed = 60000000;
-    float speedY1 = -cosf(rad) * speed;
-    float speedX2 = -sinf(rad) * speed;
-    float speedY3 = cosf(rad) * speed;
-    float speedX4 = sinf(rad) * speed;
-    
-    events.setSpeed(1, speedY1);
-    events.setSpeed(2, speedX2);
-    events.setSpeed(3, speedY3);
-    events.setSpeed(4, speedX4);
+    moveRobot(direction, correction, 0.6);
 
     bool hasBall = (ballDistance < 20) && (-15 <= ballAngle && ballAngle <= 15);
     if (hasBall) {
-      events.setSpeed(5, 90000000);
+      events.setSpeed(5, 1.0);
     } else {
       events.stop(5);
     }
 
   // Ball not seen for a bit
   } else {
-    Serial.println("LOST clat");
-    
     events.stop(5);
 
+    // Spin to look for ball
     if (ballAngle > 0) {
-      moveRobot(0, -200, 0);
+      moveRobot(0, -lostRotateSpeed, 0);
     }
     else {
-      moveRobot(0, 200, 0);
+      moveRobot(0, lostRotateSpeed, 0);
     }
   }
 }
