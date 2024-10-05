@@ -33,7 +33,7 @@ class SteelBarToF {
             return distance;
           }
         }
-        delayMicroseconds(10);
+        delayMicroseconds(10000);
       }
       return 0;
     };
@@ -252,7 +252,10 @@ bool LogicModule::readBall() {
     if (transmissionData[byteCounter] == 0xab &&
         transmissionData[(byteCounter + 1) % BYTE_COUNT] == 0xcd &&
         transmissionData[(byteCounter + 2) % BYTE_COUNT] == 0xef &&
-        transmissionData[(byteCounter + 3) % BYTE_COUNT] == 0x69) {byteCounter = 0; /*Serial.println();*/}
+        transmissionData[(byteCounter + 3) % BYTE_COUNT] == 0x69) {
+      byteCounter = 0;
+      // Serial.println();
+    }
 
     // Once collected all bytes, reset the byte counter
     if (++byteCounter >= BYTE_COUNT) {
@@ -261,8 +264,6 @@ bool LogicModule::readBall() {
         Serial.print(transmissionData[i], HEX);
         Serial.print(", ");
       }
-      Serial.print(byteCounter);
-      Serial.print(" | ");
       String text = "angle: " + String(ballAngle) + ", dist: " + String(ballDistance);
       Serial.println(text);
       */
@@ -305,8 +306,8 @@ double LogicModule::simulateToF(double tx, double ty, double heading_deg, double
     double sensor_angle_rad = sensor_angle_deg * DEG_TO_RAD;
 
     // Calculate sensor's position based on robot's position and heading
-    double sensor_x = robotX + sensor_offset * cos(heading_rad);
-    double sensor_y = robotY + sensor_offset * sin(heading_rad);
+    double sensor_x = tx + sensor_offset * cos(heading_rad);
+    double sensor_y = ty + sensor_offset * sin(heading_rad);
 
     // Calculate the direction of the sensor's ray
     double ray_dir_x = cos(heading_rad + sensor_angle_rad);
@@ -352,21 +353,22 @@ void LogicModule::simulate(float tempX, float tempY, float direction) {
   }
 }
 
+float step = 100.0; // Simulation position step constant
+const int numIterations = 21;
 void LogicModule::odometry(float direction) {
   
   float mx = 0.0;
   float my = 0.0;
 
-  float minError = 99999999; 
+  float minError = 999999;
 
-  for (int i = 0; i < 9; i++) {
-    float tempX = robotX - step * (i / 3 - 1);
-    float tempY = robotY - step * (i % 3 - 1);
+  for (int i = 0; i < numIterations; i++) {
+    float tempX = predictedX - step * (int(i / 3) - 1);
+    float tempY = predictedY - step * (i % 3 - 1);
 
     simulate(tempX,tempY,direction);
 
     float error = 0;
-
     for (int i = 0; i < 5; i++) {
       error += abs(simDistances[i] - distances[i]);
     }
@@ -379,8 +381,17 @@ void LogicModule::odometry(float direction) {
     }
   }
 
-  robotX = mx;
-  robotY = my;
+  step = max(10.0, sqrtf(powf(mx - predictedX, 2) + powf(my - predictedY, 2)));
+
+  predictedX = mx;
+  predictedY = my;
+
+  float dx = predictedX - positionX;
+  float dy = predictedY - positionY;
+
+  const float smoothness = 0.78;
+  positionX += dx * smoothness;
+  positionY += dy * smoothness;
 }
 
 void LogicModule::stop() {
@@ -432,6 +443,40 @@ void LogicModule::manual(float direction, float speed) {
   }
 }
 
+
+// Strategies
+/*
+If the goal is visible:
+- Get into a position on the middle left/right side of the field.
+- Spin the ball for a set period of time.
+- Flick the ball quickly to the left or right (depending on the side that it's on).
+- Return to forward orientation
+*/
+void LogicModule::backspinStrategy() {
+
+}
+/*
+- If the ball is in front, do normal robot pathing.
+- If the ball is behind, turn to face the ball and drive straight to it.
+Once you have the ball, if the goal is visible:
+- Turn to face opposite the goal
+- Drive backwards into an open position [top left or top right corner of field]
+- Turn left or right 180 deg (depending on which side the robot is on)
+- Drive forwards
+*/
+void LogicModule::hideBallStrategy() {
+  // Orbit around the ball
+  float turnSpeed = -10;
+  moveRobot(-90, turnSpeed, 0.6);
+}
+/*
+Find portions of the goal which are open, then drive towards them while avoiding defenders
+If goal is not visible, use localisation to drive down wings and score.
+*/
+void LogicModule::goalOffenseStrategy() {
+  
+}
+
 float a1 = -0.000000021241;
 float a2 = 0.000008242875;
 float a3 = -0.000935078305;
@@ -449,7 +494,7 @@ float distanceFunction(float x) {
   return d1 * (x * x) + d2 * x + d3;
 }
 
-void LogicModule::moveRobot(float direction, float rotation, float targetSpeed = 1.0) {
+void LogicModule::moveRobot(float direction, float rotation, float targetSpeed, float rotationScalingFactor) {
 
   // Convert angle to radians
   float rad = (direction - 45) * DEG_TO_RAD;
@@ -466,14 +511,22 @@ void LogicModule::moveRobot(float direction, float rotation, float targetSpeed =
   // Scale factor to ensure the largest motor speed is at maxspeed
   float scaleFactor = targetSpeed / maxRawSpeed;
 
-  // Factor to correct the robot's heading when misaligned.
-  float rotationScaling = -0.012;
+  // Proportional gain to correct the robot's heading when misaligned.
+  float Kp = -rotationScalingFactor;
+  float Ki = 0.015; // Integral gain
+
+  // float error = rotation;
+  // totalError += error;
+  // if (abs(error - prevError) < 0.01) {totalError = 0.0;}
+  // prevError = error;
+
+  float rotationScaling = rotation * Kp;// + totalError * Ki;
 
   // Apply the scale factor to all motor speeds
-  float scaledSpeedY1 = speedY1 * scaleFactor + rotation * rotationScaling;
-  float scaledSpeedX2 = speedX2 * scaleFactor + rotation * rotationScaling;
-  float scaledSpeedY3 = speedY3 * scaleFactor + rotation * rotationScaling;
-  float scaledSpeedX4 = speedX4 * scaleFactor + rotation * rotationScaling;
+  float scaledSpeedY1 = speedY1 * scaleFactor + rotationScaling;
+  float scaledSpeedX2 = speedX2 * scaleFactor + rotationScaling;
+  float scaledSpeedY3 = speedY3 * scaleFactor + rotationScaling;
+  float scaledSpeedX4 = speedX4 * scaleFactor + rotationScaling;
 
   // If any of the speeds are above 1.0, adjust accordingly.
   maxRawSpeed = max(max(abs(scaledSpeedY1), abs(scaledSpeedX2)), max(abs(scaledSpeedY3), abs(scaledSpeedX4)));
@@ -506,23 +559,35 @@ float LogicModule::calculateFinalDirection(float correction) {
   float scaledAngle = angle + (derivedAngle - angle) * derivedDistance;
 
   return scaledAngle;
+
+}
+
+void LogicModule::updateEstimatedPosition() {
+  if (++TOFReadTicks % TOFReadInterval == 0) {
+    readTOFs();
+    odometry(correctedHeading());
+  }
+}
+
+bool LogicModule::goToPosition(float targetX, float targetY, float rotation, float speed) {
+  float dx = targetX - positionX;
+  float dy = targetY - positionY;
+  float distSquared = dx*dx + dy*dy;
+  float targetDirection = atan2(dy, dx) / DEG_TO_RAD;
+
+  // Returns true if robot is close enough to given point.
+  if (distSquared < 121.0) {return true;}
+  moveRobot(targetDirection, rotation, min(sqrtf(distSquared) / 420., speed));
+  return false;
 }
 
 void LogicModule::logic(float direction, float speed) {
   float correction = correctedHeading();
 
-  readBall();
-  // readTOFs();
-
-  bool hasBall = (ballDistance < 20) && (-15 <= ballAngle && ballAngle <= 15);
-
   if (correction > 180) {
     correction -= 360;
   }
 
-  // MUST FIX LOCALISATION
-  // odometry(correction);
-  
   // Go straight forward at kickoff for a given amount of ticks.
   if (kickoffTicks < kickoffTicksMax) {
     kickoffTicks += 1;
@@ -531,23 +596,31 @@ void LogicModule::logic(float direction, float speed) {
     return;
   }
 
+  readBall();
+  updateEstimatedPosition();
+
   // Increment lostTicks for every update that the ball is not seen.
   if (seesBall) { 
     lostTicks = 0; 
   } else {
-    lostTicks += 1;
+    lostTicks++;
   }
 
   // In game
-  if (lostTicks < 10) {
-    float direction = calculateFinalDirection(correction);
-
-    moveRobot(direction, correction, 0.6);
-
+  if (lostTicks < lostTicksMax) {
     bool hasBall = (ballDistance < 20) && (-15 <= ballAngle && ballAngle <= 15);
     if (hasBall) {
-      events.setSpeed(5, 1.0);
+      hasBallTicks = hasBallTicksMax;
     } else {
+      hasBallTicks--;
+    }
+
+    if (hasBallTicks > 0) {
+      events.setSpeed(5, 1.0);
+      moveRobot(0, fmod(correction - 180.0, 360.0), 0.0, 0.0023);
+    } else {
+      float direction = calculateFinalDirection(correction);
+      moveRobot(direction, correction, 0.55);
       events.stop(5);
     }
 
@@ -555,12 +628,21 @@ void LogicModule::logic(float direction, float speed) {
   } else {
     events.stop(5);
 
+    // SHOULD REPLACE WITH GOING BACK TO GOAL (ONCE LOCALISATION WORKS)
     // Spin to look for ball
-    if (ballAngle > 0) {
-      moveRobot(0, -lostRotateSpeed, 0);
-    }
-    else {
-      moveRobot(0, lostRotateSpeed, 0);
+    // if (ballAngle > 0) {
+    //   moveRobot(0, -lostRotateSpeed, 0);
+    // }
+    // else {
+    //   moveRobot(0, lostRotateSpeed, 0);
+    // }
+    // moveRobot(direction, correction, 0);
+    
+    if (reachedPosition) {
+      stop();
+      reachedPosition = true;
+    } else {
+      reachedPosition = goToPosition(300, 300, correction, 0.65);
     }
   }
 }

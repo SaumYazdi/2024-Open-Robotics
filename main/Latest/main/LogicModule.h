@@ -24,7 +24,7 @@ class LogicModule {
     void setup();
     void setReports(sh2_SensorId_t reportType, long report_interval);
     float calculateFinalDirection(float correction);
-    void moveRobot(float direction, float rotation, float targetSpeed);
+    void moveRobot(float direction, float rotation, float targetSpeed = 1.0, float rotationScalingFactor = 0.010);
     bool readBall();
     void readIMU();
     void readTOFs();
@@ -37,18 +37,36 @@ class LogicModule {
     void manual(float direction, float speed);
     void logic(float direction = -1.0, float speed = -1.0);
     int update();
+    void updateEstimatedPosition();
+    bool goToPosition(float x, float y, float rotation, float speed);
+
+    void backspinStrategy();
+    void hideBallStrategy();
+    void goalOffenseStrategy();
 
     int simDistances[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     int distances[8]; // ToFs' distance
 
     float initialHeading = 0; // Robot orientation/heading
 
-    float robotX = 0.0; // Estimated robot position from ToFs
-    float robotY = 0.0;
+    bool reachedPosition = false;
 
-    int kickoffTicksMax = 0; // 300;
+    float predictedX = 0.0; // Predicted robot position from ToFs
+    float predictedY = 0.0;
+
+    float positionX = 0.; // Smoothed position from predicted position
+    float positionY = 0.;
+
+    float totalError = 0;
+    float prevError;
+
+    const int kickoffTicksMax = 0; // 300;
     int kickoffTicks = 0; // Time where robot is driving straight forward
+    const int lostTicksMax = 500;
     int lostTicks = 0; // Time where ball is not seen
+    const int hasBallTicksMax = 250;
+    const int hasBallTicksThreshold = 250;
+    int hasBallTicks = 0;
 
     float ballDistance = 0; // Read ball distance and angle
     float ballAngle = 0;
@@ -63,9 +81,9 @@ class LogicModule {
     EventHandler events;
 
   private:
-    float step = 100.0; // Simulation position step constant
-
     const float lostRotateSpeed = 10;
+    int TOFReadTicks = 0;
+    const int TOFReadInterval = 240;
 };
 
 #endif

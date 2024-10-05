@@ -145,8 +145,8 @@ void dynamic_values() {
   json_data = add_item(json_data, "distances", "\"" + convertToString(bot->logic.distances, 8) + "\"") + ",";
   json_data = add_item(json_data, "simDistances", "\"" + convertToString(bot->logic.simDistances, 8) + "\"") + ",";
   json_data = add_item(json_data, "mode", "\"" + mode + "\"") + ",";
-  json_data = add_item(json_data, "x", String(bot->logic.robotX)) + ",";
-  json_data = add_item(json_data, "y", String(bot->logic.robotY)) + ",";
+  json_data = add_item(json_data, "x", String(bot->logic.positionX)) + ",";
+  json_data = add_item(json_data, "y", String(bot->logic.positionY)) + ",";
   json_data = add_item(json_data, "kickoffTicks", String(bot->logic.kickoffTicks)) + ",";
   json_data = add_item(json_data, "lostTicks", String(bot->logic.lostTicks)) + ",";
   json_data = add_item(json_data, "distance", String(bot->logic.ballDistance)) + ",";
@@ -203,6 +203,7 @@ String HTML() {
           slowRightButton.addEventListener("touchstart", () => {turnXHR.open("GET", "/turn?value=10000", true); turnXHR.send(null);});
           slowRightButton.addEventListener("touchend", () => {turnXHR.open("GET", "/turn?value=0", true); turnXHR.send(null);});
         </script>
+        <canvas id="field-canvas" width="3040" height="3040"></canvas>
         <script type="text/javascript">
           let headingCanvas = document.getElementById("heading-canvas");
           let headingRect = headingCanvas.getBoundingClientRect();
@@ -217,13 +218,14 @@ String HTML() {
 
           let heading = 0;
           let tofs = JSON.parse('{"-33.50": 0, "-68.50": 0, "-113.50": 0, "-158.50": 0, "158.50": 0, "113.50": 0, "68.50": 0, "33.50": 0}');
-          let simDistances = tofs;
+          let simDistances = [0, 0, 0, 0, 0, 0, 0, 0];
           let headingContext = headingCanvas.getContext("2d");
 
           let modeLabel = document.getElementById("mode-label");
           
           let ballDistance = 0;
           let ballAngle = 0;
+          let robotPosition = [0, 0];
 
           let dataReq = new XMLHttpRequest();
           dataReq.onload = update;
@@ -237,8 +239,10 @@ String HTML() {
             simDistances = data.simDistances.split(", ");
             modeLabel.innerHTML = "Mode: " + data.mode;
             drawHeading();
+            drawField();
 
-            subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances} <br>Distance: ${data.distance} <br>Angle: ${data.angle} <br>Position: ${x}, ${y}`;
+            robotPosition = [data.x, data.y];
+            subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances} <br>Distance: ${data.distance} <br>Angle: ${data.angle} <br>Position: ${data.x}, ${data.y}`;
             ballAngle = parseInt(data.angle) * Math.PI / 180;
             ballDistance = parseInt(data.distance);
 
@@ -280,7 +284,6 @@ String HTML() {
               headingContext.arc(bx, by, ballRadius, 0, 2 * Math.PI, false);
               headingContext.fillStyle = 'rgb(250, 50, 5)';
               headingContext.fill();
-
             }
             
             prevRot = 0;
@@ -299,19 +302,67 @@ String HTML() {
                 headingContext.stroke();
 
                 prevRot = rAngle;
+
+                headingContext.beginPath();
+                headingContext.arc(headingRadius + parseInt(simDistances[i]) / 2, 0, 5, 0, 2 * Math.PI, false);
+                headingContext.fillStyle = 'rgb(110, 70, 230)';
+                headingContext.fill();
+
               }
-
-              headingContext.beginPath();
-              headingContext.arc(headingRadius + parseInt(simDistances[i]), 0, 5, 0, 2 * Math.PI, false);
-              headingContext.fillStyle = 'rgb(110, 70, 230)';
-              headingContext.fill();
-
               i++;
             }
 
             headingContext.setTransform(1, 0, 0, 1, 0, 0);
           }
           drawHeading();
+        </script>
+
+        <script type="text/javascript">
+          
+          FIELD_WIDTH = 1820.0;
+          FIELD_HEIGHT = 2430.0;
+
+          let fieldCanvas = document.getElementById("field-canvas");
+          let fieldRect = fieldCanvas.getBoundingClientRect();
+          let fieldWidth = fieldRect.width;
+          let fieldHeight = fieldRect.height;
+
+          let fieldContext = fieldCanvas.getContext("2d");
+          function drawField() {
+            fieldContext.fillStyle = 'rgb(255, 255, 255)';
+            fieldContext.fillRect(0, 0, fieldWidth, fieldHeight);
+
+            fieldContext.translate(fieldWidth / 2, fieldHeight / 2);
+            rHeading = (-90 - heading) * Math.PI / 180;
+            fieldContext.rotate(rHeading);
+
+            fieldContext.lineWidth = 10;
+            fieldContext.fillStyle = 'rgb(49, 112, 63)';
+            fieldContext.fillRect(-FIELD_WIDTH / 2, -FIELD_HEIGHT / 2, FIELD_WIDTH, FIELD_HEIGHT);
+            fieldContext.strokeStyle = 'rgb(32, 69, 40)';
+            fieldContext.strokeRect(-FIELD_WIDTH / 2, -FIELD_HEIGHT / 2, FIELD_WIDTH, FIELD_HEIGHT);
+
+            fieldContext.beginPath();
+            fieldContext.arc(-FIELD_WIDTH / 2, -FIELD_HEIGHT / 2, 20, 0, 2 * Math.PI, false);
+            fieldContext.fillStyle = 'rgb(255, 0, 0)';
+            fieldContext.fill();
+
+            fieldContext.beginPath();
+            fieldContext.arc(robotPosition[0] - FIELD_WIDTH / 2, robotPosition[1] - FIELD_HEIGHT / 2, 80, 0, 2 * Math.PI, false);
+            fieldContext.fillStyle = 'rgb(252, 240, 0)';
+            fieldContext.fill();
+
+            if (ballAngle != 0 && ballDistance > 0) {
+              fieldContext.beginPath();
+              fieldContext.arc(robotPosition[0] - FIELD_WIDTH / 2 + ballDistance * 10 * Math.cos(ballAngle), robotPosition[1] - FIELD_HEIGHT / 2 + ballDistance * 10 * Math.sin(ballAngle), 35, 0, 2 * Math.PI, false);
+              fieldContext.fillStyle = 'rgb(230, 76, 21)';
+              fieldContext.fill();
+            }
+
+            fieldContext.setTransform(1, 0, 0, 1, 0, 0);
+          }
+          drawField();
+
         </script>
 
         <script type="text/javascript">
