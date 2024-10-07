@@ -12,6 +12,8 @@
 
 struct euler_t {
   float yaw;
+  float pitch;
+  float roll;
 } ypr;
 
 class SteelBarToF {
@@ -69,6 +71,8 @@ void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, boo
   float sqk = sq(qk);
 
   ypr->yaw = atan2(2.0 * (qi * qj + qk * qr), (sqi - sqj - sqk + sqr));
+  ypr->pitch = asin(-2.0 * (qi * qk - qj * qr) / (sqi + sqj + sqk + sqr));
+  ypr->roll = atan2(2.0 * (qj * qk + qi * qr), (-sqi - sqj + sqk + sqr));
   
   if (degrees) {
     ypr->yaw *= RAD_TO_DEG;
@@ -240,6 +244,9 @@ void LogicModule::setReports(sh2_SensorId_t reportType, long report_interval) {
   if (!bno08x.enableReport(reportType, report_interval)) {
     Serial.println("Could not enable stabilized remote vector");
   }
+  if (!bno08x.enableReport(SH2_ACCELEROMETER)) {
+    Serial.println("Could not enable accelerometer");
+  }
 }
 
 bool LogicModule::readBall() {
@@ -285,11 +292,101 @@ bool LogicModule::readBall() {
   return false;
 }
 
+struct Vec3 {
+  float x;
+  float y;
+  float z;
+};
+struct RotationMatrix {
+  float m11; float m12; float m13;
+  float m21; float m22; float m23;
+  float m31; float m32; float m33;
+};
+Vec3 matrixVec3Product(RotationMatrix mat, Vec3 vec) {
+  // Perform row-to-column products to compute resultant vector.
+  Vec3 result;
+  result.x = mat.m11 * vec.x + mat.m12 * vec.y + mat.m13 * vec.z;
+  result.y = mat.m21 * vec.x + mat.m22 * vec.y + mat.m23 * vec.z;
+  result.z = mat.m31 * vec.x + mat.m32 * vec.y + mat.m33 * vec.z;
+  return result;
+}
+RotationMatrix M;
+Vec3 resolveAccelerationVector(float ax, float ay, float az, float pitch, float roll) {
+  // Declare acceleration vector
+  Vec3 accel;
+  accel.x = ax;
+  accel.y = ay;
+  accel.z = az;
+
+  // Set rotation matrix values
+  float ca = cosf(roll);
+  float sa = sinf(roll);
+  float cb = cosf(pitch);
+  float sb = sinf(pitch);
+  M.m11 = cb;  M.m12 = sa * sb; M.m13 = ca * sb;
+  M.m21 = 0;   M.m22 = ca;      M.m23 = -sa;
+  M.m31 = -sb; M.m32 = sa * cb; M.m33 = ca * cb;
+
+  // Perform matrix multiplication
+  return matrixVec3Product(M, accel);
+}
+
 void LogicModule::readIMU() {
   if (bno08x.getSensorEvent(&sensorValue)) {
-    if (sensorValue.sensorId == SH2_ARVR_STABILIZED_RV) {
-      // Convert quaternion to yaw
-      quaternionToEulerRV(&sensorValue.un.arvrStabilizedRV, &ypr, true);
+    switch (sensorValue.sensorId) {
+      case SH2_ARVR_STABILIZED_RV:
+        quaternionToEulerRV(&sensorValue.un.arvrStabilizedRV, &ypr, true);
+        break;
+
+      case SH2_ACCELEROMETER:
+        float rawAccelerationX = sensorValue.un.accelerometer.x;
+        float rawAccelerationY = sensorValue.un.accelerometer.y;
+        float rawAccelerationZ = sensorValue.un.accelerometer.z;
+
+        Vec3 acceleration = resolveAccelerationVector(rawAccelerationX, rawAccelerationY, rawAccelerationZ, ypr.pitch, ypr.roll);
+
+        // front back is normal
+        // left right is pos to neg
+        acceleration.y = -acceleration.y;
+
+        accelerationX = acceleration.x - prevAccelerationX;
+        accelerationY = acceleration.y - prevAccelerationY;
+        accelerationZ = acceleration.z - prevAccelerationZ;
+        prevAccelerationX = acceleration.x;
+        prevAccelerationY = acceleration.y;
+        prevAccelerationZ = acceleration.z;
+
+        float heading = correctedHeading() * DEG_TO_RAD;
+
+        float magnitude = hypot(accelerationX, accelerationY);
+        float accelDirection = atan2(accelerationY, accelerationX);
+        float accelX = magnitude * cosf(heading + accelDirection);
+        float accelY = magnitude * sinf(heading + accelDirection);
+
+        // Serial.print(accelerationX);
+        // Serial.print(", ");
+        // Serial.print(accelerationY);
+        // Serial.print(", ");
+        // Serial.println(accelerationZ);
+
+        // Serial.print(accelDirection / DEG_TO_RAD);
+        // Serial.println(" deg");
+
+        float currentTime = millis();
+        float deltaTime = (currentTime - prevTime) / 1000;
+        prevTime = currentTime;
+
+        velocityX += accelX * 1000 * deltaTime;
+        velocityY += accelY * 1000 * deltaTime;
+        positionX += velocityX * deltaTime;
+        positionY += velocityY * deltaTime;
+        velocityX *= .98; // ENTROPY
+        velocityY *= .98;
+        Serial.print(positionX);
+        Serial.print(", ");
+        Serial.println(positionY);
+
+        break;
     }
   }
 }
@@ -353,24 +450,28 @@ void LogicModule::simulate(float tempX, float tempY, float direction) {
   }
 }
 
-float step = 100.0; // Simulation position step constant
-const int numIterations = 21;
+const int numIterations = 16;
 void LogicModule::odometry(float direction) {
+  float step = 100.0; // Simulation position step constant
   
   float mx = 0.0;
   float my = 0.0;
 
   float minError = 999999;
 
+  float startTime = millis();
+  float tofDifferences[5];
   for (int i = 0; i < numIterations; i++) {
     float tempX = predictedX - step * (int(i / 3) - 1);
     float tempY = predictedY - step * (i % 3 - 1);
 
-    simulate(tempX,tempY,direction);
+    simulate(tempX, tempY, -direction);
 
     float error = 0;
     for (int i = 0; i < 5; i++) {
-      error += abs(simDistances[i] - distances[i]);
+      float tofDifference = abs(simDistances[i] - distances[i]);
+      tofDifferences[i] = tofDifference;
+      error += tofDifference;
     }
 
     if (error < minError) {
@@ -379,9 +480,11 @@ void LogicModule::odometry(float direction) {
 
       minError = error;
     }
-  }
 
-  step = max(10.0, sqrtf(powf(mx - predictedX, 2) + powf(my - predictedY, 2)));
+    step = max(10.0, sqrtf(powf(mx - predictedX, 2) + powf(my - predictedY, 2)));
+  }
+  Serial.print(millis() - startTime);
+  Serial.println(" ms");
 
   predictedX = mx;
   predictedY = my;
@@ -389,9 +492,22 @@ void LogicModule::odometry(float direction) {
   float dx = predictedX - positionX;
   float dy = predictedY - positionY;
 
-  const float smoothness = 0.78;
+  const float smoothness = 0.89;
   positionX += dx * smoothness;
   positionY += dy * smoothness;
+
+  Serial.print(distances[0]);
+  Serial.println(" mm");
+
+  Serial.print(positionX);
+  Serial.print(", ");
+  Serial.println(positionY);
+
+  // for (int i = 0; i < 5; i++) {
+  //   Serial.print(tofDifferences[i]);
+  //   Serial.print(", ");
+  // }
+  // Serial.println("");
 }
 
 void LogicModule::stop() {
@@ -576,8 +692,8 @@ bool LogicModule::goToPosition(float targetX, float targetY, float rotation, flo
   float targetDirection = atan2(dy, dx) / DEG_TO_RAD;
 
   // Returns true if robot is close enough to given point.
-  if (distSquared < 121.0) {return true;}
-  moveRobot(targetDirection, rotation, min(sqrtf(distSquared) / 420., speed));
+  if (distSquared < 800.0) {return true;}
+  moveRobot(targetDirection, rotation, min(sqrtf(distSquared) / 600., speed));
   return false;
 }
 
@@ -640,9 +756,11 @@ void LogicModule::logic(float direction, float speed) {
     
     if (reachedPosition) {
       stop();
-      reachedPosition = true;
     } else {
-      reachedPosition = goToPosition(300, 300, correction, 0.65);
+      float defendingPositionX = 350.; // X is lengthwise
+      float defendingPositionY = FIELD_WIDTH / 2; // Y is widthwise
+      reachedPosition = goToPosition(defendingPositionX, defendingPositionY, correction, 0.5);
+      // reachedPosition = goToPosition(300, 300, correction, 0.6);
     }
   }
 }
@@ -657,9 +775,6 @@ int LogicModule::update() {
   }
   else if (digitalRead(switchUp)) {
     mode = RUNNING;
-  }
-  else {
-    mode = NEUTRAL;
   }
 
   return mode;

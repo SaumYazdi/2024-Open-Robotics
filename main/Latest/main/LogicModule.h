@@ -49,6 +49,17 @@ class LogicModule {
 
     float initialHeading = 0; // Robot orientation/heading
 
+    float accelerationX = 0.;
+    float accelerationY = 0.;
+    float accelerationZ = 0.;
+    float prevAccelerationX = 0.;
+    float prevAccelerationY = 0.;
+    float prevAccelerationZ = 0.;
+    float velocityX = 0.;
+    float velocityY = 0.;
+
+    float prevTime = millis();
+
     bool reachedPosition = false;
 
     float predictedX = 0.0; // Predicted robot position from ToFs
@@ -62,7 +73,7 @@ class LogicModule {
 
     const int kickoffTicksMax = 0; // 300;
     int kickoffTicks = 0; // Time where robot is driving straight forward
-    const int lostTicksMax = 500;
+    const int lostTicksMax = 420;
     int lostTicks = 0; // Time where ball is not seen
     const int hasBallTicksMax = 250;
     const int hasBallTicksThreshold = 250;
@@ -83,7 +94,7 @@ class LogicModule {
   private:
     const float lostRotateSpeed = 10;
     int TOFReadTicks = 0;
-    const int TOFReadInterval = 240;
+    const int TOFReadInterval = 200;
 };
 
 #endif

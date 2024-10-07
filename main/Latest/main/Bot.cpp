@@ -12,6 +12,7 @@ void Bot::update() {
     case NEUTRAL:
       // logic.readBall();
       // logic.updateEstimatedPosition();
+      logic.readIMU();
       logic.stop();
       logic.reachedPosition = false;
       break;
