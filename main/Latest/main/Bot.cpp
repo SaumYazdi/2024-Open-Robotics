@@ -10,21 +10,20 @@ void Bot::update() {
       break;
       
     case NEUTRAL:
-      // logic.readBall();
-      // logic.updateEstimatedPosition();
-      logic.readIMU();
+      logic.readBall();
+      logic.updateEstimatedPosition();
       logic.stop();
       logic.reachedPosition = false;
       break;
 
     case RUNNING:
       // REMOTE CONTROL STUFF
-      if (speed != 0) {
-        logic.motor5.setSpeed(80000000);
-        logic.manual(direction, speed);
-      } else {
-        logic.logic();
-      }
+      // if (speed != 0) {
+      //   logic.motor5.setSpeed(80000000);
+      //   logic.manual(direction, speed);
+      // } else {
+      logic.logic();
+      // }
       break;
   }
 }

@@ -12,7 +12,7 @@
 
 // Constants
 #define CALIBRATION 0xA2
-#define NEUTRAL 0xA3
+#define NEUTRAL 0xA7
 #define RUNNING 0xB6
 
 const double FIELD_WIDTH = 1820.0;
@@ -22,7 +22,7 @@ class LogicModule {
   public:
     LogicModule();
     void setup();
-    void setReports(sh2_SensorId_t reportType, long report_interval);
+    void setReports();
     float calculateFinalDirection(float correction);
     void moveRobot(float direction, float rotation, float targetSpeed = 1.0, float rotationScalingFactor = 0.010);
     bool readBall();
@@ -51,14 +51,13 @@ class LogicModule {
 
     float accelerationX = 0.;
     float accelerationY = 0.;
-    float accelerationZ = 0.;
-    float prevAccelerationX = 0.;
-    float prevAccelerationY = 0.;
-    float prevAccelerationZ = 0.;
     float velocityX = 0.;
     float velocityY = 0.;
 
+    bool inMotion = false;
+
     float prevTime = millis();
+    float deltaTime = 0.;
 
     bool reachedPosition = false;
 

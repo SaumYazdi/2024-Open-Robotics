@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-#define DEBUG_WITH_WEBSERVER false
+#define DEBUG_WITH_WEBSERVER true
 
 Bot* bot;
 
@@ -147,6 +147,8 @@ void dynamic_values() {
   json_data = add_item(json_data, "mode", "\"" + mode + "\"") + ",";
   json_data = add_item(json_data, "x", String(bot->logic.positionX)) + ",";
   json_data = add_item(json_data, "y", String(bot->logic.positionY)) + ",";
+  json_data = add_item(json_data, "ax", String(bot->logic.accelerationX)) + ",";
+  json_data = add_item(json_data, "ay", String(bot->logic.accelerationY)) + ",";
   json_data = add_item(json_data, "kickoffTicks", String(bot->logic.kickoffTicks)) + ",";
   json_data = add_item(json_data, "lostTicks", String(bot->logic.lostTicks)) + ",";
   json_data = add_item(json_data, "distance", String(bot->logic.ballDistance)) + ",";
@@ -242,7 +244,7 @@ String HTML() {
             drawField();
 
             robotPosition = [data.x, data.y];
-            subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances} <br>Distance: ${data.distance} <br>Angle: ${data.angle} <br>Position: ${data.x}, ${data.y}`;
+            subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances} <br>Distance: ${data.distance} <br>Angle: ${data.angle} <br>Position: ${data.x}, ${data.y} <br>Acceleration: ${data.ax}, ${data.ay}`;
             ballAngle = parseInt(data.angle) * Math.PI / 180;
             ballDistance = parseInt(data.distance);
 
@@ -334,7 +336,7 @@ String HTML() {
 
             fieldContext.translate(fieldWidth / 2, fieldHeight / 2);
             rHeading = (-90 - heading) * Math.PI / 180;
-            fieldContext.rotate(rHeading);
+            fieldContext.rotate(-90 * Math.PI / 180);
 
             fieldContext.lineWidth = 10;
             fieldContext.fillStyle = 'rgb(49, 112, 63)';
