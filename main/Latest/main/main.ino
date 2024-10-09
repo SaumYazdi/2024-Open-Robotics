@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-#define DEBUG_WITH_WEBSERVER true
+#define DEBUG_WITH_WEBSERVER false
 
 Bot* bot;
 
@@ -147,8 +147,10 @@ void dynamic_values() {
   json_data = add_item(json_data, "mode", "\"" + mode + "\"") + ",";
   json_data = add_item(json_data, "x", String(bot->logic.positionX)) + ",";
   json_data = add_item(json_data, "y", String(bot->logic.positionY)) + ",";
-  json_data = add_item(json_data, "ax", String(bot->logic.accelerationX)) + ",";
-  json_data = add_item(json_data, "ay", String(bot->logic.accelerationY)) + ",";
+  json_data = add_item(json_data, "targetDirection", String(bot->logic.targetDirection)) + ",";
+  json_data = add_item(json_data, "targetRotation", String(bot->logic.targetRotation)) + ",";
+  json_data = add_item(json_data, "targetSpeed", String(bot->logic.targetTravelSpeed)) + ",";
+  json_data = add_item(json_data, "targetRotationScalingFactor", String(bot->logic.targetRotationScalingFactor)) + ",";
   json_data = add_item(json_data, "kickoffTicks", String(bot->logic.kickoffTicks)) + ",";
   json_data = add_item(json_data, "lostTicks", String(bot->logic.lostTicks)) + ",";
   json_data = add_item(json_data, "distance", String(bot->logic.ballDistance)) + ",";
@@ -244,7 +246,7 @@ String HTML() {
             drawField();
 
             robotPosition = [data.x, data.y];
-            subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances} <br>Distance: ${data.distance} <br>Angle: ${data.angle} <br>Position: ${data.x}, ${data.y} <br>Acceleration: ${data.ax}, ${data.ay}`;
+            subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances} <br>Distance: ${data.distance} <br>Angle: ${data.angle} <br>Position: ${data.x}, ${data.y} <br>targetDirection: ${data.targetDirection} <br>targetSpeed: ${data.targetSpeed} <br>targetRotation: ${data.targetRotation} <br>targetRotationScalingFactor: ${data.targetRotationScalingFactor}`;
             ballAngle = parseInt(data.angle) * Math.PI / 180;
             ballDistance = parseInt(data.distance);
 
@@ -321,8 +323,8 @@ String HTML() {
 
         <script type="text/javascript">
           
-          FIELD_WIDTH = 1820.0;
-          FIELD_HEIGHT = 2430.0;
+          FIELD_WIDTH = 2430.0;
+          FIELD_HEIGHT = 1820.0;
 
           let fieldCanvas = document.getElementById("field-canvas");
           let fieldRect = fieldCanvas.getBoundingClientRect();
@@ -335,7 +337,7 @@ String HTML() {
             fieldContext.fillRect(0, 0, fieldWidth, fieldHeight);
 
             fieldContext.translate(fieldWidth / 2, fieldHeight / 2);
-            rHeading = (-90 - heading) * Math.PI / 180;
+            rHeading = (-heading) * Math.PI / 180;
             fieldContext.rotate(-90 * Math.PI / 180);
 
             fieldContext.lineWidth = 10;
@@ -352,6 +354,11 @@ String HTML() {
             fieldContext.beginPath();
             fieldContext.arc(robotPosition[0] - FIELD_WIDTH / 2, robotPosition[1] - FIELD_HEIGHT / 2, 80, 0, 2 * Math.PI, false);
             fieldContext.fillStyle = 'rgb(252, 240, 0)';
+            fieldContext.fill();
+
+            fieldContext.beginPath();
+            fieldContext.arc(robotPosition[0] - FIELD_WIDTH / 2 + 80*Math.cos(rHeading), robotPosition[1] - FIELD_HEIGHT / 2 + 80*Math.sin(rHeading), 30, 0, 2 * Math.PI, false);
+            fieldContext.fillStyle = 'rgb(240, 230, 0)';
             fieldContext.fill();
 
             if (ballAngle != 0 && ballDistance > 0) {

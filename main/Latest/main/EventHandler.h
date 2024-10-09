@@ -18,7 +18,7 @@ class EventHandler {
   private:
     const int maxMotorSpeed = 90000000;
 
-    const int commandInterval = 250; // in milliseconds; delay to send i2c commands to update motor speed
+    const int commandInterval = 400; // in milliseconds; delay to send i2c commands to update motor speed
     unsigned long prevTime = millis();
     unsigned long deltaTime = 0;
     int motorNumber;

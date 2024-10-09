@@ -74,13 +74,17 @@ class LogicModule {
     int kickoffTicks = 0; // Time where robot is driving straight forward
     const int lostTicksMax = 420;
     int lostTicks = 0; // Time where ball is not seen
-    const int hasBallTicksMax = 250;
-    const int hasBallTicksThreshold = 250;
+    const int hasBallTicksThreshold = 50; // After how many ticks to activate holding ball procedure
     int hasBallTicks = 0;
 
     float ballDistance = 0; // Read ball distance and angle
     float ballAngle = 0;
     bool seesBall = false;
+
+    float targetDirection;
+    float targetRotation;
+    float targetTravelSpeed;
+    float targetRotationScalingFactor;
 
     PowerfulBLDCdriver motor1;
     PowerfulBLDCdriver motor2;
@@ -92,8 +96,8 @@ class LogicModule {
 
   private:
     const float lostRotateSpeed = 10;
-    int TOFReadTicks = 0;
-    const int TOFReadInterval = 200;
+    const int TOFReadInterval = 600;
+    int lastTOFRead = millis();
 };
 
 #endif
