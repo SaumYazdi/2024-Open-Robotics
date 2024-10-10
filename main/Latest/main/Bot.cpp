@@ -4,6 +4,8 @@
 int ticks = 0;
 void Bot::update() {
   if (++ticks % 10 == 0) {
+    Serial.println("e");
+
     mode = logic.update();
 
     switch (mode) {

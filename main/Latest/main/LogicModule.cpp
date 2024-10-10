@@ -157,6 +157,7 @@ void LogicModule::setup() {
   Wire.setSCL(9);
   Wire.setSDA(8);
   Wire.begin();
+  Wire.setClock(1000000);
 
   delay(1000);
 
@@ -685,7 +686,7 @@ float LogicModule::calculateFinalDirection(float correction) {
     derivedAngle = -angleFunction(abs(angle));
   }
 
-  float derivedDistance = max(distanceFunction(ballDistance * 10), 0);  // Polynomial function in millimetres
+  float derivedDistance = max(distanceFunction(ballDistance * 2), 0);  // Polynomial function in millimetres
   float scaledAngle = angle + (derivedAngle - angle) * derivedDistance;
 
   return scaledAngle;
@@ -767,9 +768,11 @@ void LogicModule::logic(float direction, float speed) {
     if (hasBallTicks > hasBallTicksThreshold) {
       events.setSpeed(5, 1.0);
 
+      moveRobot(0, correction, 1.0, 0.0025);
+
       // HAS BALL POSESSION
       // if (positionY < FIELD_HEIGHT * 0.5) {  // 1215.0; IF BEFORE HALFWAY LINE, DRIVE FORWARD WHILE TURNING BACKWARDS
-      moveRobot(-correction, fmod(correction - 180.0, 360.0), 0.2, 0.0022);
+      // moveRobot(-correction, fmod(correction + 360.0, 360.0) - 180.0, 0.0, 0.001);
       // } else if (positionY < FIELD_HEIGHT * 0.75) {  // IF BETWEEN HALFWAY AND 3/4 OF THE FIELD, DRIVE FORWARDS WHILE FACING STRAIGHT
       //   moveRobot(0, correction, 0.5, 0.0022);
       // } else {
@@ -778,7 +781,7 @@ void LogicModule::logic(float direction, float speed) {
 
     } else {
       float direction = calculateFinalDirection(correction);
-      moveRobot(direction, correction, 0.55);
+      moveRobot(direction, correction, 0.95);
       events.stop(5);
     }
 
