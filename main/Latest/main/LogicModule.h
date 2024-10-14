@@ -24,7 +24,7 @@ class LogicModule {
     void setup();
     void setReports();
     float calculateFinalDirection(float correction);
-    void moveRobot(float direction, float rotation, float targetSpeed = 1.0, float rotationScalingFactor = 0.010);
+    void moveRobot(float direction, float rotation, float targetSpeed = 1.0, float rotationScalingFactor = 0.030);
     bool readBall();
     void readIMU();
     void readTOFs();
@@ -39,6 +39,8 @@ class LogicModule {
     int update();
     void updateEstimatedPosition();
     bool goToPosition(float x, float y, float rotation, float speed);
+
+    void doStrategy();
 
     void backspinStrategy();
     void hideBallStrategy();
@@ -72,14 +74,19 @@ class LogicModule {
 
     const int kickoffTicksMax = 0; // 300;
     int kickoffTicks = 0; // Time where robot is driving straight forward
-    const int lostTicksMax = 420;
+    const int lostTicksMax = 1000; // About 1000 ms
     int lostTicks = 0; // Time where ball is not seen
-    const int hasBallTicksThreshold = 50; // After how many ticks to activate holding ball procedure
+    const int hasBallTicksThreshold = 49; // After how many ticks to activate holding ball procedure
     int hasBallTicks = 0;
 
-    float ballDistance = 0; // Read ball distance and angle
-    float ballAngle = 0;
+    int heldTicks = 0;
+    int throwingBallTicks = 0;
+
+    float ballDistance = -9999999; // Read ball distance and angle
+    float ballAngle = -9999999;
     bool seesBall = false;
+
+    uint8_t strategy = 0;
 
     float targetDirection;
     float targetRotation;

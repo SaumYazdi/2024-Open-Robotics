@@ -148,6 +148,9 @@ LogicModule::LogicModule() {
   events.motor3 = &motor3;
   events.motor4 = &motor4;
   events.motor5 = &motor5;
+
+  // Ball random strategy
+  randomSeed(analogRead(0));
 }
 
 /*!
@@ -723,6 +726,66 @@ bool LogicModule::goToPosition(float targetX, float targetY, float rotation, flo
   return false;
 }
 
+const uint8_t STRAIGHT_FORWARD = 1;
+const uint8_t HIDE_LEFT = 2;
+const uint8_t HIDE_RIGHT = 3;
+const uint8_t HIDE_BACK = 4;
+float dir; float dir2;
+const int firstHold = 400;
+const int secondHold = 2000;
+const int DEG_LEFT = 135; // How far to turn left to hide
+void LogicModule::doStrategy() {
+  float correction = correctedHeading();
+
+  switch (strategy) {
+
+    case STRAIGHT_FORWARD:
+      moveRobot(correction, correction, 0.8);
+      break;
+
+    case HIDE_LEFT:
+      dir = fmod(correction + 180 - DEG_LEFT, 360) - 180;
+      dir2 = fmod(correction + 180 - 75, 360) - 180;
+      if (heldTicks < firstHold) {
+        throwingBallTicks = 0;
+        moveRobot(correction, dir, 0.0, 0.0015);
+      } else if (heldTicks < secondHold) {
+        throwingBallTicks = 0;
+        moveRobot(correction, dir2, 0.45, 0.0002);
+      }
+      if (throwingBallTicks > 5 || heldTicks >= secondHold) {
+        moveRobot(correction, 1, 0.65, 10);
+        throwingBallTicks++;
+      }
+      break;
+
+    case HIDE_RIGHT:
+      dir = fmod(correction - 90, 360) - 180;
+      if (heldTicks < firstHold) {
+        moveRobot(correction, dir, 0.0, 0.005);
+      } else if (heldTicks < secondHold) {
+        moveRobot(correction, dir, 0.6, 0.004);
+      } else {
+        moveRobot(correction, correction, 0.7, 0.005);
+      }
+      break;
+
+    case HIDE_BACK:
+      dir = fmod(correction + 180, 360) - 180;
+      if (heldTicks < firstHold) {
+        moveRobot(correction, dir, 0.0, 0.005);
+      } else if (heldTicks < secondHold) {
+        moveRobot(correction, dir, 0.6, 0.004);
+      } else {
+        moveRobot(correction, correction, 0.7, 0.005);
+      }
+      break;
+
+  }
+  
+  heldTicks++;
+}
+
 void LogicModule::logic(float direction, float speed) {
   float correction = correctedHeading();
 
@@ -733,20 +796,13 @@ void LogicModule::logic(float direction, float speed) {
   // Go straight forward at kickoff for a given amount of ticks.
   if (kickoffTicks < kickoffTicksMax) {
     kickoffTicks += 1;
-    events.setSpeed(5, 0.9);
-    moveRobot(0, correction * -15, 1.0);
+    events.setSpeed(5, 0.85);
+    moveRobot(0, correction, 1.0);
     return;
   }
 
   readBall();
   // updateEstimatedPosition();
-  Serial.print(ballAngle);
-  Serial.print(", ");
-  Serial.print(ballDistance);
-  Serial.print(" | ");
-  Serial.print(positionX);
-  Serial.print(", ");
-  Serial.println(positionY);
 
   // Increment lostTicks for every update that the ball is not seen.
   if (seesBall) {
@@ -762,26 +818,28 @@ void LogicModule::logic(float direction, float speed) {
     if (hasBall) {
       hasBallTicks++;
     } else {
+      hasBallTicks -= 2;
+    }
+    if (hasBallTicks <= 0) {
       hasBallTicks = 0;
+      heldTicks = 0;
     }
 
-    if (hasBallTicks > hasBallTicksThreshold) {
+    if (hasBallTicks == hasBallTicksThreshold) {
+      // Start of holding ball, runs once
+      // Random number from 1 to 4
+      // strategy = static_cast<int>(random(1, 5));
+      strategy = HIDE_LEFT;
+
+    } else if (hasBallTicks > hasBallTicksThreshold || throwingBallTicks > 5) {
       events.setSpeed(5, 1.0);
 
-      moveRobot(0, correction, 1.0, 0.0025);
-
-      // HAS BALL POSESSION
-      // if (positionY < FIELD_HEIGHT * 0.5) {  // 1215.0; IF BEFORE HALFWAY LINE, DRIVE FORWARD WHILE TURNING BACKWARDS
-      // moveRobot(-correction, fmod(correction + 360.0, 360.0) - 180.0, 0.0, 0.001);
-      // } else if (positionY < FIELD_HEIGHT * 0.75) {  // IF BETWEEN HALFWAY AND 3/4 OF THE FIELD, DRIVE FORWARDS WHILE FACING STRAIGHT
-      //   moveRobot(0, correction, 0.5, 0.0022);
-      // } else {
-      //   moveRobot(0, correction, 1.0);  // DRIVE FORWARD FAST
-      // }
+      doStrategy();
+      if (throwingBallTicks >= 200) {throwingBallTicks = 0;}
 
     } else {
       float direction = calculateFinalDirection(correction);
-      moveRobot(direction, correction, 0.95);
+      moveRobot(direction, correction, 0.75);
       events.stop(5);
     }
 
@@ -789,24 +847,22 @@ void LogicModule::logic(float direction, float speed) {
   } else {
     events.stop(5);
 
-    // SHOULD REPLACE WITH GOING BACK TO GOAL (ONCE LOCALISATION WORKS)
     // Spin to look for ball
-    // if (ballAngle > 0) {
-    //   moveRobot(0, -lostRotateSpeed, 0);
-    // }
-    // else {
-    //   moveRobot(0, lostRotateSpeed, 0);
-    // }
-    // moveRobot(direction, correction, 0);
-
-    if (reachedPosition) {
-      stop();
+    if (ballAngle > 0) {
+      moveRobot(0, -lostRotateSpeed, 0);
     } else {
-      float defendingPositionX = 350.;             // X is lengthwise
-      float defendingPositionY = FIELD_WIDTH / 2;  // Y is widthwise
-      reachedPosition = goToPosition(defendingPositionX, defendingPositionY, correction, 0.5);
-      // reachedPosition = goToPosition(300, 300, correction, 0.6);
+      moveRobot(0, lostRotateSpeed, 0);
     }
+
+    // if (reachedPosition) {
+    //   stop();
+    // } else {
+    //   moveRobot(0, correction, 0.0);
+      // float defendingPositionX = 350.;             // X is lengthwise
+      // float defendingPositionY = FIELD_WIDTH / 2;  // Y is widthwise
+      // reachedPosition = goToPosition(defendingPositionX, defendingPositionY, correction, 0.5);
+      // reachedPosition = goToPosition(300, 300, correction, 0.6);
+    // }
   }
 
   // PREVENT OUT OF BOUNDS

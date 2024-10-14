@@ -1,39 +1,39 @@
 #include "Bot.h"
-#include <WiFi.h>
-#include <WebServer.h>
-
 #define DEBUG_WITH_WEBSERVER false
 
 Bot* bot;
 
-// Global robot values
-int speed = 0;
-int direction = 0;
+// #include <WiFi.h>
+// #include <WebServer.h>
 
-const float tofAngles[8] = { -33.5, -68.5, -113.5, -158.5, 158.5, 113.5, 68.5, 33.5 };
+// // Global robot values
+// int speed = 0;
+// int direction = 0;
 
-// Webserver routes
-void handle_OnConnect();
-void handle_speed();
-void handle_direction();
-void handle_NotFound();
+// const float tofAngles[8] = { -33.5, -68.5, -113.5, -158.5, 158.5, 113.5, 68.5, 33.5 };
 
-String HTML();
-String status = "Connected";
+// // Webserver routes
+// void handle_OnConnect();
+// void handle_speed();
+// void handle_direction();
+// void handle_NotFound();
 
-// Specifying the SSID and Password of the AP
-const char* ap_ssid = "Shenzhen Weinan Electronics Co."; // Access Point SSID
-const char* ap_password = "admin987"; // Access Point Password
-uint8_t max_connections = 1; // Maximum Connection Limit for AP
-int current_stations = 0, new_stations = 0;
+// String HTML();
+// String status = "Connected";
 
-IPAddress local_IP(192, 168, 4, 1);  // Set your desired static IP address
-IPAddress gateway(192, 168, 4, 1);   // Usually the same as the IP address
-IPAddress subnet(255, 255, 255, 0);
-IPAddress IP;
+// // Specifying the SSID and Password of the AP
+// const char* ap_ssid = "Shenzhen Weinan Electronics Co."; // Access Point SSID
+// const char* ap_password = "admin987"; // Access Point Password
+// uint8_t max_connections = 1; // Maximum Connection Limit for AP
+// int current_stations = 0, new_stations = 0;
 
-// Specifying the Webserver instance to connect with HTTP Port: 80
-WebServer server(80);
+// IPAddress local_IP(192, 168, 4, 1);  // Set your desired static IP address
+// IPAddress gateway(192, 168, 4, 1);   // Usually the same as the IP address
+// IPAddress subnet(255, 255, 255, 0);
+// IPAddress IP;
+
+// // Specifying the Webserver instance to connect with HTTP Port: 80
+// WebServer server(80);
 
 void setup() {
   // DEBUGGING
@@ -41,450 +41,450 @@ void setup() {
   
   bot = new Bot();
 
-  if (DEBUG_WITH_WEBSERVER == false) {return;}
+  // if (DEBUG_WITH_WEBSERVER == false) {return;}
 
-  WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(local_IP, gateway, subnet); // Configure static IP
+  // WiFi.mode(WIFI_AP);
+  // WiFi.softAPConfig(local_IP, gateway, subnet); // Configure static IP
    
-  // Setting the AP Mode with SSID, Password, and Max Connection Limit
-  WiFi.softAP(ap_ssid,ap_password,1,false,max_connections);
+  // // Setting the AP Mode with SSID, Password, and Max Connection Limit
+  // WiFi.softAP(ap_ssid,ap_password,1,false,max_connections);
  
-  // Specifying the functions which will be executed upon corresponding GET request from the client
-  server.on("/", HTTP_GET, handle_OnConnect);
-  server.on("/speed", handle_speed);
-  server.on("/turn", handle_turn);
-  server.on("/direction", handle_direction);
-  server.on("/update", handle_update);
-  server.on("/dynamic_values", dynamic_values);
-  server.onNotFound(handle_NotFound);
+  // // Specifying the functions which will be executed upon corresponding GET request from the client
+  // server.on("/", HTTP_GET, handle_OnConnect);
+  // server.on("/speed", handle_speed);
+  // server.on("/turn", handle_turn);
+  // server.on("/direction", handle_direction);
+  // server.on("/update", handle_update);
+  // server.on("/dynamic_values", dynamic_values);
+  // server.onNotFound(handle_NotFound);
 
-  // Starting the Server
-  server.begin();
+  // // Starting the Server
+  // server.begin();
 }
 
 void loop() {
   bot->update();
   
-  if (DEBUG_WITH_WEBSERVER == false) {return;}
+  // if (DEBUG_WITH_WEBSERVER == false) {return;}
   
   // Assign the server to handle the clients
-  server.handleClient();
+  // server.handleClient();
 }
  
-void handle_OnConnect() {
-  status = "Connected to AP";
-  server.send(200, "text/html", HTML()); 
-}
+// void handle_OnConnect() {
+//   status = "Connected to AP";
+//   server.send(200, "text/html", HTML()); 
+// }
 
-void handle_update() {
-  speed = server.arg("speed").toInt();
-  direction = server.arg("direction").toInt();
-  server.send(200, "text/html", HTML());
+// void handle_update() {
+//   speed = server.arg("speed").toInt();
+//   direction = server.arg("direction").toInt();
+//   server.send(200, "text/html", HTML());
 
-  bot->speed = speed;
-  bot->direction = direction;
-}
+//   bot->speed = speed;
+//   bot->direction = direction;
+// }
 
-void handle_speed() {
-  speed = server.arg("value").toInt();
-  server.send(200, "text/html", HTML());
+// void handle_speed() {
+//   speed = server.arg("value").toInt();
+//   server.send(200, "text/html", HTML());
 
-  bot->speed = speed;
-}
+//   bot->speed = speed;
+// }
 
-void handle_turn() {
-  bot->turnSpeed = server.arg("value").toInt();
-  server.send(200, "text/html", HTML());
-}
+// void handle_turn() {
+//   bot->turnSpeed = server.arg("value").toInt();
+//   server.send(200, "text/html", HTML());
+// }
 
-void handle_direction() {
-  direction = server.arg("value").toInt();
-  server.send(200, "text/html", HTML());
+// void handle_direction() {
+//   direction = server.arg("value").toInt();
+//   server.send(200, "text/html", HTML());
 
-  bot->direction = direction;
-}
+//   bot->direction = direction;
+// }
 
-void handle_NotFound() {
-  server.send(404, "text/plain", "Not found");
-}
+// void handle_NotFound() {
+//   server.send(404, "text/plain", "Not found");
+// }
 
-String add_item(String data, String key, String value) {
-  return data + "\"" + key + "\": " + value; 
-}
+// String add_item(String data, String key, String value) {
+//   return data + "\"" + key + "\": " + value; 
+// }
 
-String convertToString(int* a, int size)
-{
-    String s = "";
-    for (int i = 0; i < size; i++) {
-      s = s + String(a[i]);
-      if (i < size - 1) {
-        s += ", ";
-      }
-    }
-    return s;
-}
+// String convertToString(int* a, int size)
+// {
+//     String s = "";
+//     for (int i = 0; i < size; i++) {
+//       s = s + String(a[i]);
+//       if (i < size - 1) {
+//         s += ", ";
+//       }
+//     }
+//     return s;
+// }
 
-void dynamic_values() {
-  String heading(bot->heading());
+// void dynamic_values() {
+//   String heading(bot->heading());
 
-  int* tofs = bot->tofs();
-  String distances = "{";
-  for (int i = 0; i < 8; i++) {
-    distances += "\"" + String(tofAngles[i]) + "\": " + String(tofs[i]);
-    if (i < 7) {
-      distances += ", ";
-    }
-  }
-  distances += "}";
+//   int* tofs = bot->tofs();
+//   String distances = "{";
+//   for (int i = 0; i < 8; i++) {
+//     distances += "\"" + String(tofAngles[i]) + "\": " + String(tofs[i]);
+//     if (i < 7) {
+//       distances += ", ";
+//     }
+//   }
+//   distances += "}";
 
-  String mode = bot->getMode();
+//   String mode = bot->getMode();
 
-  String json_data = "{";
-  json_data = add_item(json_data, "heading", heading) + ",";
-  json_data = add_item(json_data, "tofs", distances) + ",";
-  json_data = add_item(json_data, "distances", "\"" + convertToString(bot->logic.distances, 8) + "\"") + ",";
-  json_data = add_item(json_data, "simDistances", "\"" + convertToString(bot->logic.simDistances, 8) + "\"") + ",";
-  json_data = add_item(json_data, "mode", "\"" + mode + "\"") + ",";
-  json_data = add_item(json_data, "x", String(bot->logic.positionX)) + ",";
-  json_data = add_item(json_data, "y", String(bot->logic.positionY)) + ",";
-  json_data = add_item(json_data, "targetDirection", String(bot->logic.targetDirection)) + ",";
-  json_data = add_item(json_data, "targetRotation", String(bot->logic.targetRotation)) + ",";
-  json_data = add_item(json_data, "targetSpeed", String(bot->logic.targetTravelSpeed)) + ",";
-  json_data = add_item(json_data, "targetRotationScalingFactor", String(bot->logic.targetRotationScalingFactor)) + ",";
-  json_data = add_item(json_data, "kickoffTicks", String(bot->logic.kickoffTicks)) + ",";
-  json_data = add_item(json_data, "lostTicks", String(bot->logic.lostTicks)) + ",";
-  json_data = add_item(json_data, "distance", String(bot->logic.ballDistance)) + ",";
-  json_data = add_item(json_data, "angle", String(bot->logic.ballAngle));
-  json_data += "}";
+//   String json_data = "{";
+//   json_data = add_item(json_data, "heading", heading) + ",";
+//   json_data = add_item(json_data, "tofs", distances) + ",";
+//   json_data = add_item(json_data, "distances", "\"" + convertToString(bot->logic.distances, 8) + "\"") + ",";
+//   json_data = add_item(json_data, "simDistances", "\"" + convertToString(bot->logic.simDistances, 8) + "\"") + ",";
+//   json_data = add_item(json_data, "mode", "\"" + mode + "\"") + ",";
+//   json_data = add_item(json_data, "x", String(bot->logic.positionX)) + ",";
+//   json_data = add_item(json_data, "y", String(bot->logic.positionY)) + ",";
+//   json_data = add_item(json_data, "targetDirection", String(bot->logic.targetDirection)) + ",";
+//   json_data = add_item(json_data, "targetRotation", String(bot->logic.targetRotation)) + ",";
+//   json_data = add_item(json_data, "targetSpeed", String(bot->logic.targetTravelSpeed)) + ",";
+//   json_data = add_item(json_data, "targetRotationScalingFactor", String(bot->logic.targetRotationScalingFactor)) + ",";
+//   json_data = add_item(json_data, "kickoffTicks", String(bot->logic.kickoffTicks)) + ",";
+//   json_data = add_item(json_data, "lostTicks", String(bot->logic.lostTicks)) + ",";
+//   json_data = add_item(json_data, "distance", String(bot->logic.ballDistance)) + ",";
+//   json_data = add_item(json_data, "angle", String(bot->logic.ballAngle));
+//   json_data += "}";
 
-  server.send(200, "text/plain", json_data);
-}
+//   server.send(200, "text/plain", json_data);
+// }
 
-String HTML() {
-  const char index_html[] PROGMEM = R"rawliteral(
-  <!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-        <title>Robot Controller</title>
-        <style>
-          html {font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center; overscroll-behavior: none;}
-          body {margin-top: 50px; overscroll-behavior: none;}
-          h1 {color: #444444; margin: 50px auto 30px;}
-          h3 {color: #444444; margin-bottom: 50px;}
-          .button {display: block; width: 180px; background-color: #0d81ec; border: none; color: white; padding: 13px 30px; text-decoration: none; font-size: 25px; margin: 0px auto 35px; cursor: pointer; border-radius: 4px;}
-          .button-update {background-color: #0d81ec;}
-          .button-update:active {background-color: #0d81ec;}
-          .textbox {width: 200px; height: 30px; border: none; background-color: #f48100; color: white; padding: 5px; font-size: 16px; border-radius: 4px; margin: 0px auto 35px;}
-          input[type="range"] {-webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; width: 15rem;}
-          input[type="range"]:focus {outline: none;}
-          input[type="range"]::-webkit-slider-runnable-track {background-color: #afafaf; border-radius: 0.5rem; height: 0.5rem;}
-          input[type="range"]::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; margin-top: -12px; background-color: #5cd5eb; height: 2rem; width: 1rem; border-radius: 0.5rem;}
-          input[type="range"]:focus::-webkit-slider-thumb {border: 1px solid #afafaf; outline: 3px solid #afafaf; outline-offset: 0.125rem;}
-          .status-field {width: 300px; height: 30px; border: none; background-color: #ffffff; color: black; padding: 5px; font-size: 16px; border-radius: 4px; margin: 0px auto 15px;}
-        </style>
-      </head>
+// String HTML() {
+//   const char index_html[] PROGMEM = R"rawliteral(
+//   <!DOCTYPE html>
+//     <html>
+//       <head>
+//         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+//         <title>Robot Controller</title>
+//         <style>
+//           html {font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center; overscroll-behavior: none;}
+//           body {margin-top: 50px; overscroll-behavior: none;}
+//           h1 {color: #444444; margin: 50px auto 30px;}
+//           h3 {color: #444444; margin-bottom: 50px;}
+//           .button {display: block; width: 180px; background-color: #0d81ec; border: none; color: white; padding: 13px 30px; text-decoration: none; font-size: 25px; margin: 0px auto 35px; cursor: pointer; border-radius: 4px;}
+//           .button-update {background-color: #0d81ec;}
+//           .button-update:active {background-color: #0d81ec;}
+//           .textbox {width: 200px; height: 30px; border: none; background-color: #f48100; color: white; padding: 5px; font-size: 16px; border-radius: 4px; margin: 0px auto 35px;}
+//           input[type="range"] {-webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; width: 15rem;}
+//           input[type="range"]:focus {outline: none;}
+//           input[type="range"]::-webkit-slider-runnable-track {background-color: #afafaf; border-radius: 0.5rem; height: 0.5rem;}
+//           input[type="range"]::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; margin-top: -12px; background-color: #5cd5eb; height: 2rem; width: 1rem; border-radius: 0.5rem;}
+//           input[type="range"]:focus::-webkit-slider-thumb {border: 1px solid #afafaf; outline: 3px solid #afafaf; outline-offset: 0.125rem;}
+//           .status-field {width: 300px; height: 30px; border: none; background-color: #ffffff; color: black; padding: 5px; font-size: 16px; border-radius: 4px; margin: 0px auto 15px;}
+//         </style>
+//       </head>
 
-      <body>
-        <h1 id="title">Robot Controller</h1>
-        <h3 id="subtitle">Using Access Point (AP) Mode</h3>
+//       <body>
+//         <h1 id="title">Robot Controller</h1>
+//         <h3 id="subtitle">Using Access Point (AP) Mode</h3>
         
-        <button onclick="location.reload()">Refresh</button>
+//         <button onclick="location.reload()">Refresh</button>
 
-        <p id="mode-label"></p>
-        <canvas id="heading-canvas" width="1280" height="1280"></canvas>
-        <div style="position: fixed; right: 0; bottom: 0;">
-          <button id="slow-left" style="margin: 1rem; user-select: none; -webkit-user-select: none;"><</button>
-          <canvas id="joystick" width="210" height="210"></canvas>
-          <button id="slow-right" style="margin: 1rem; user-select: none; -webkit-user-select: none;">></button>
-        </div>
-        <script type="text/javascript">
-          let slowLeftButton = document.getElementById("slow-left");
-          let slowRightButton = document.getElementById("slow-right");
-          let turnXHR = new XMLHttpRequest();
-          slowLeftButton.addEventListener("touchstart", () => {turnXHR.open("GET", "/turn?value=-10000", true); turnXHR.send(null);});
-          slowLeftButton.addEventListener("touchend", () => {turnXHR.open("GET", "/turn?value=0", true); turnXHR.send(null);});
-          slowRightButton.addEventListener("touchstart", () => {turnXHR.open("GET", "/turn?value=10000", true); turnXHR.send(null);});
-          slowRightButton.addEventListener("touchend", () => {turnXHR.open("GET", "/turn?value=0", true); turnXHR.send(null);});
-        </script>
-        <canvas id="field-canvas" width="3040" height="3040"></canvas>
-        <script type="text/javascript">
-          let headingCanvas = document.getElementById("heading-canvas");
-          let headingRect = headingCanvas.getBoundingClientRect();
-          let headingWidth = headingRect.width;
-          let headingHeight = headingRect.height;
+//         <p id="mode-label"></p>
+//         <canvas id="heading-canvas" width="1280" height="1280"></canvas>
+//         <div style="position: fixed; right: 0; bottom: 0;">
+//           <button id="slow-left" style="margin: 1rem; user-select: none; -webkit-user-select: none;"><</button>
+//           <canvas id="joystick" width="210" height="210"></canvas>
+//           <button id="slow-right" style="margin: 1rem; user-select: none; -webkit-user-select: none;">></button>
+//         </div>
+//         <script type="text/javascript">
+//           let slowLeftButton = document.getElementById("slow-left");
+//           let slowRightButton = document.getElementById("slow-right");
+//           let turnXHR = new XMLHttpRequest();
+//           slowLeftButton.addEventListener("touchstart", () => {turnXHR.open("GET", "/turn?value=-10000", true); turnXHR.send(null);});
+//           slowLeftButton.addEventListener("touchend", () => {turnXHR.open("GET", "/turn?value=0", true); turnXHR.send(null);});
+//           slowRightButton.addEventListener("touchstart", () => {turnXHR.open("GET", "/turn?value=10000", true); turnXHR.send(null);});
+//           slowRightButton.addEventListener("touchend", () => {turnXHR.open("GET", "/turn?value=0", true); turnXHR.send(null);});
+//         </script>
+//         <canvas id="field-canvas" width="3040" height="3040"></canvas>
+//         <script type="text/javascript">
+//           let headingCanvas = document.getElementById("heading-canvas");
+//           let headingRect = headingCanvas.getBoundingClientRect();
+//           let headingWidth = headingRect.width;
+//           let headingHeight = headingRect.height;
 
-          let subTitle = document.getElementById("subtitle");
+//           let subTitle = document.getElementById("subtitle");
 
-          let ww = window.innerWidth * 0.9;
-          headingCanvas.style.width = ww + "px";
-          headingCanvas.style.height = ww * headingHeight / headingWidth + "px";
+//           let ww = window.innerWidth * 0.9;
+//           headingCanvas.style.width = ww + "px";
+//           headingCanvas.style.height = ww * headingHeight / headingWidth + "px";
 
-          let heading = 0;
-          let tofs = JSON.parse('{"-33.50": 0, "-68.50": 0, "-113.50": 0, "-158.50": 0, "158.50": 0, "113.50": 0, "68.50": 0, "33.50": 0}');
-          let simDistances = [0, 0, 0, 0, 0, 0, 0, 0];
-          let headingContext = headingCanvas.getContext("2d");
+//           let heading = 0;
+//           let tofs = JSON.parse('{"-33.50": 0, "-68.50": 0, "-113.50": 0, "-158.50": 0, "158.50": 0, "113.50": 0, "68.50": 0, "33.50": 0}');
+//           let simDistances = [0, 0, 0, 0, 0, 0, 0, 0];
+//           let headingContext = headingCanvas.getContext("2d");
 
-          let modeLabel = document.getElementById("mode-label");
+//           let modeLabel = document.getElementById("mode-label");
           
-          let ballDistance = 0;
-          let ballAngle = 0;
-          let robotPosition = [0, 0];
+//           let ballDistance = 0;
+//           let ballAngle = 0;
+//           let robotPosition = [0, 0];
 
-          let dataReq = new XMLHttpRequest();
-          dataReq.onload = update;
-          dataReq.open("GET", "/dynamic_values", true);
-          dataReq.send(null);
-          function update(event) {
-            page = dataReq.responseText;
-            let data = JSON.parse(page);
-            heading = data.heading;
-            tofs = data.tofs;
-            simDistances = data.simDistances.split(", ");
-            modeLabel.innerHTML = "Mode: " + data.mode;
-            drawHeading();
-            drawField();
+//           let dataReq = new XMLHttpRequest();
+//           dataReq.onload = update;
+//           dataReq.open("GET", "/dynamic_values", true);
+//           dataReq.send(null);
+//           function update(event) {
+//             page = dataReq.responseText;
+//             let data = JSON.parse(page);
+//             heading = data.heading;
+//             tofs = data.tofs;
+//             simDistances = data.simDistances.split(", ");
+//             modeLabel.innerHTML = "Mode: " + data.mode;
+//             drawHeading();
+//             drawField();
 
-            robotPosition = [data.x, data.y];
-            subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances} <br>Distance: ${data.distance} <br>Angle: ${data.angle} <br>Position: ${data.x}, ${data.y} <br>targetDirection: ${data.targetDirection} <br>targetSpeed: ${data.targetSpeed} <br>targetRotation: ${data.targetRotation} <br>targetRotationScalingFactor: ${data.targetRotationScalingFactor}`;
-            ballAngle = parseInt(data.angle) * Math.PI / 180;
-            ballDistance = parseInt(data.distance);
+//             robotPosition = [data.x, data.y];
+//             subTitle.innerHTML = `TOF Distance: ${data.distances} <br>Simulated Distance: ${data.simDistances} <br>Distance: ${data.distance} <br>Angle: ${data.angle} <br>Position: ${data.x}, ${data.y} <br>targetDirection: ${data.targetDirection} <br>targetSpeed: ${data.targetSpeed} <br>targetRotation: ${data.targetRotation} <br>targetRotationScalingFactor: ${data.targetRotationScalingFactor}`;
+//             ballAngle = parseInt(data.angle) * Math.PI / 180;
+//             ballDistance = parseInt(data.distance);
 
-            dataReq.open("GET", "/dynamic_values", true);
-            dataReq.send(null);
-          }
+//             dataReq.open("GET", "/dynamic_values", true);
+//             dataReq.send(null);
+//           }
 
-          let headingRadius = 80;
-          let distanceScaleFactor = .2;
-          let rHeading, rAngle, prevRot, diff, distance;
-          function drawHeading() {
-            let scale = headingRadius / 100;
-            rHeading = (-90 - heading) * Math.PI / 180;
-            headingContext.fillStyle = 'rgb(255, 255, 255)';
-            headingContext.fillRect(0, 0, headingWidth, headingHeight);
+//           let headingRadius = 80;
+//           let distanceScaleFactor = .2;
+//           let rHeading, rAngle, prevRot, diff, distance;
+//           function drawHeading() {
+//             let scale = headingRadius / 100;
+//             rHeading = (-90 - heading) * Math.PI / 180;
+//             headingContext.fillStyle = 'rgb(255, 255, 255)';
+//             headingContext.fillRect(0, 0, headingWidth, headingHeight);
 
-            headingContext.beginPath();
-            headingContext.arc(headingWidth / 2, headingHeight / 2, headingRadius, 0.14 * Math.PI + rHeading, 1.86 * Math.PI + rHeading, false);
-            headingContext.lineWidth = 5 * scale;
-            headingContext.strokeStyle = 'rgb(50, 50, 50)';
-            headingContext.stroke();
+//             headingContext.beginPath();
+//             headingContext.arc(headingWidth / 2, headingHeight / 2, headingRadius, 0.14 * Math.PI + rHeading, 1.86 * Math.PI + rHeading, false);
+//             headingContext.lineWidth = 5 * scale;
+//             headingContext.strokeStyle = 'rgb(50, 50, 50)';
+//             headingContext.stroke();
 
-            headingContext.translate(headingWidth / 2, headingHeight / 2);
-            headingContext.rotate(rHeading);
-            headingContext.fillStyle = 'rgb(50, 50, 50)';
-            headingContext.strokeRect(-40 * scale, -25 * scale, 80 * scale, 50 * scale);
-            headingContext.strokeRect(52 * scale, -45 * scale, 33 * scale, 90 * scale);
-            headingContext.fillStyle = 'rgb(255, 255, 255)';
-            headingContext.fillRect(70 * scale, -43 * scale, 20 * scale, 86 * scale);
+//             headingContext.translate(headingWidth / 2, headingHeight / 2);
+//             headingContext.rotate(rHeading);
+//             headingContext.fillStyle = 'rgb(50, 50, 50)';
+//             headingContext.strokeRect(-40 * scale, -25 * scale, 80 * scale, 50 * scale);
+//             headingContext.strokeRect(52 * scale, -45 * scale, 33 * scale, 90 * scale);
+//             headingContext.fillStyle = 'rgb(255, 255, 255)';
+//             headingContext.fillRect(70 * scale, -43 * scale, 20 * scale, 86 * scale);
 
-            if (ballAngle != 0 && ballDistance > 0) {
-              let ballRadius = 33 * scale;
-              let ballDistanceScale = 9 * scale;
-              let bx = ballDistanceScale * ballDistance * Math.cos(ballAngle);
-              let by = ballDistanceScale * ballDistance * Math.sin(ballAngle);
-              console.log(ballAngle);
+//             if (ballAngle != 0 && ballDistance > 0) {
+//               let ballRadius = 33 * scale;
+//               let ballDistanceScale = 9 * scale;
+//               let bx = ballDistanceScale * ballDistance * Math.cos(ballAngle);
+//               let by = ballDistanceScale * ballDistance * Math.sin(ballAngle);
+//               console.log(ballAngle);
 
-              headingContext.beginPath();
-              headingContext.arc(bx, by, ballRadius, 0, 2 * Math.PI, false);
-              headingContext.fillStyle = 'rgb(250, 50, 5)';
-              headingContext.fill();
-            }
+//               headingContext.beginPath();
+//               headingContext.arc(bx, by, ballRadius, 0, 2 * Math.PI, false);
+//               headingContext.fillStyle = 'rgb(250, 50, 5)';
+//               headingContext.fill();
+//             }
             
-            prevRot = 0;
-            let i = 0;
-            for (let tofAngle in tofs) {
-              distance = tofs[tofAngle] * distanceScaleFactor;
-              if (distance > 0 && distance <= 10000 * distanceScaleFactor) {
-                rAngle = tofAngle * Math.PI / 180;
-                diff = rAngle - prevRot;
-                headingContext.rotate(diff);
+//             prevRot = 0;
+//             let i = 0;
+//             for (let tofAngle in tofs) {
+//               distance = tofs[tofAngle] * distanceScaleFactor;
+//               if (distance > 0 && distance <= 10000 * distanceScaleFactor) {
+//                 rAngle = tofAngle * Math.PI / 180;
+//                 diff = rAngle - prevRot;
+//                 headingContext.rotate(diff);
 
-                headingContext.strokeStyle = 'rgb(50, 50, 50)';
-                headingContext.beginPath();
-                headingContext.moveTo(headingRadius, 0);
-                headingContext.lineTo(headingRadius + distance, 0);
-                headingContext.stroke();
+//                 headingContext.strokeStyle = 'rgb(50, 50, 50)';
+//                 headingContext.beginPath();
+//                 headingContext.moveTo(headingRadius, 0);
+//                 headingContext.lineTo(headingRadius + distance, 0);
+//                 headingContext.stroke();
 
-                prevRot = rAngle;
+//                 prevRot = rAngle;
 
-                headingContext.beginPath();
-                headingContext.arc(headingRadius + parseInt(simDistances[i]) / 2, 0, 5, 0, 2 * Math.PI, false);
-                headingContext.fillStyle = 'rgb(110, 70, 230)';
-                headingContext.fill();
+//                 headingContext.beginPath();
+//                 headingContext.arc(headingRadius + parseInt(simDistances[i]) / 2, 0, 5, 0, 2 * Math.PI, false);
+//                 headingContext.fillStyle = 'rgb(110, 70, 230)';
+//                 headingContext.fill();
 
-              }
-              i++;
-            }
+//               }
+//               i++;
+//             }
 
-            headingContext.setTransform(1, 0, 0, 1, 0, 0);
-          }
-          drawHeading();
-        </script>
+//             headingContext.setTransform(1, 0, 0, 1, 0, 0);
+//           }
+//           drawHeading();
+//         </script>
 
-        <script type="text/javascript">
+//         <script type="text/javascript">
           
-          FIELD_WIDTH = 2430.0;
-          FIELD_HEIGHT = 1820.0;
+//           FIELD_WIDTH = 2430.0;
+//           FIELD_HEIGHT = 1820.0;
 
-          let fieldCanvas = document.getElementById("field-canvas");
-          let fieldRect = fieldCanvas.getBoundingClientRect();
-          let fieldWidth = fieldRect.width;
-          let fieldHeight = fieldRect.height;
+//           let fieldCanvas = document.getElementById("field-canvas");
+//           let fieldRect = fieldCanvas.getBoundingClientRect();
+//           let fieldWidth = fieldRect.width;
+//           let fieldHeight = fieldRect.height;
 
-          let fieldContext = fieldCanvas.getContext("2d");
-          function drawField() {
-            fieldContext.fillStyle = 'rgb(255, 255, 255)';
-            fieldContext.fillRect(0, 0, fieldWidth, fieldHeight);
+//           let fieldContext = fieldCanvas.getContext("2d");
+//           function drawField() {
+//             fieldContext.fillStyle = 'rgb(255, 255, 255)';
+//             fieldContext.fillRect(0, 0, fieldWidth, fieldHeight);
 
-            fieldContext.translate(fieldWidth / 2, fieldHeight / 2);
-            rHeading = (-heading) * Math.PI / 180;
-            fieldContext.rotate(-90 * Math.PI / 180);
+//             fieldContext.translate(fieldWidth / 2, fieldHeight / 2);
+//             rHeading = (-heading) * Math.PI / 180;
+//             fieldContext.rotate(-90 * Math.PI / 180);
 
-            fieldContext.lineWidth = 10;
-            fieldContext.fillStyle = 'rgb(49, 112, 63)';
-            fieldContext.fillRect(-FIELD_WIDTH / 2, -FIELD_HEIGHT / 2, FIELD_WIDTH, FIELD_HEIGHT);
-            fieldContext.strokeStyle = 'rgb(32, 69, 40)';
-            fieldContext.strokeRect(-FIELD_WIDTH / 2, -FIELD_HEIGHT / 2, FIELD_WIDTH, FIELD_HEIGHT);
+//             fieldContext.lineWidth = 10;
+//             fieldContext.fillStyle = 'rgb(49, 112, 63)';
+//             fieldContext.fillRect(-FIELD_WIDTH / 2, -FIELD_HEIGHT / 2, FIELD_WIDTH, FIELD_HEIGHT);
+//             fieldContext.strokeStyle = 'rgb(32, 69, 40)';
+//             fieldContext.strokeRect(-FIELD_WIDTH / 2, -FIELD_HEIGHT / 2, FIELD_WIDTH, FIELD_HEIGHT);
 
-            fieldContext.beginPath();
-            fieldContext.arc(-FIELD_WIDTH / 2, -FIELD_HEIGHT / 2, 20, 0, 2 * Math.PI, false);
-            fieldContext.fillStyle = 'rgb(255, 0, 0)';
-            fieldContext.fill();
+//             fieldContext.beginPath();
+//             fieldContext.arc(-FIELD_WIDTH / 2, -FIELD_HEIGHT / 2, 20, 0, 2 * Math.PI, false);
+//             fieldContext.fillStyle = 'rgb(255, 0, 0)';
+//             fieldContext.fill();
 
-            fieldContext.beginPath();
-            fieldContext.arc(robotPosition[0] - FIELD_WIDTH / 2, robotPosition[1] - FIELD_HEIGHT / 2, 80, 0, 2 * Math.PI, false);
-            fieldContext.fillStyle = 'rgb(252, 240, 0)';
-            fieldContext.fill();
+//             fieldContext.beginPath();
+//             fieldContext.arc(robotPosition[0] - FIELD_WIDTH / 2, robotPosition[1] - FIELD_HEIGHT / 2, 80, 0, 2 * Math.PI, false);
+//             fieldContext.fillStyle = 'rgb(252, 240, 0)';
+//             fieldContext.fill();
 
-            fieldContext.beginPath();
-            fieldContext.arc(robotPosition[0] - FIELD_WIDTH / 2 + 80*Math.cos(rHeading), robotPosition[1] - FIELD_HEIGHT / 2 + 80*Math.sin(rHeading), 30, 0, 2 * Math.PI, false);
-            fieldContext.fillStyle = 'rgb(240, 230, 0)';
-            fieldContext.fill();
+//             fieldContext.beginPath();
+//             fieldContext.arc(robotPosition[0] - FIELD_WIDTH / 2 + 80*Math.cos(rHeading), robotPosition[1] - FIELD_HEIGHT / 2 + 80*Math.sin(rHeading), 30, 0, 2 * Math.PI, false);
+//             fieldContext.fillStyle = 'rgb(240, 230, 0)';
+//             fieldContext.fill();
 
-            if (ballAngle != 0 && ballDistance > 0) {
-              fieldContext.beginPath();
-              fieldContext.arc(robotPosition[0] - FIELD_WIDTH / 2 + ballDistance * 10 * Math.cos(ballAngle), robotPosition[1] - FIELD_HEIGHT / 2 + ballDistance * 10 * Math.sin(ballAngle), 35, 0, 2 * Math.PI, false);
-              fieldContext.fillStyle = 'rgb(230, 76, 21)';
-              fieldContext.fill();
-            }
+//             if (ballAngle != 0 && ballDistance > 0) {
+//               fieldContext.beginPath();
+//               fieldContext.arc(robotPosition[0] - FIELD_WIDTH / 2 + ballDistance * 10 * Math.cos(ballAngle), robotPosition[1] - FIELD_HEIGHT / 2 + ballDistance * 10 * Math.sin(ballAngle), 35, 0, 2 * Math.PI, false);
+//               fieldContext.fillStyle = 'rgb(230, 76, 21)';
+//               fieldContext.fill();
+//             }
 
-            fieldContext.setTransform(1, 0, 0, 1, 0, 0);
-          }
-          drawField();
+//             fieldContext.setTransform(1, 0, 0, 1, 0, 0);
+//           }
+//           drawField();
 
-        </script>
+//         </script>
 
-        <script type="text/javascript">
-            var canvas = document.getElementById("joystick");
-            let rect = canvas.getBoundingClientRect();
-            let w = rect.width;
-            let h = rect.height;
-            let x = w / 2;
-            let y = h / 2;
-            let joystickRadius = 70;
-            let innerRadius = 30;
+//         <script type="text/javascript">
+//             var canvas = document.getElementById("joystick");
+//             let rect = canvas.getBoundingClientRect();
+//             let w = rect.width;
+//             let h = rect.height;
+//             let x = w / 2;
+//             let y = h / 2;
+//             let joystickRadius = 70;
+//             let innerRadius = 30;
 
-            var previewContext = canvas.getContext("2d");
-            previewContext.lineWidth = 3;
+//             var previewContext = canvas.getContext("2d");
+//             previewContext.lineWidth = 3;
             
-            function drawJoystick(ctx) {
-                ctx.clearRect(0, 0, w, h);
+//             function drawJoystick(ctx) {
+//                 ctx.clearRect(0, 0, w, h);
 
-                ctx.beginPath();
-                ctx.arc(w / 2, h / 2, joystickRadius, 0, 2 * Math.PI, false);
-                ctx.strokeStyle = 'rgb(50, 50, 50)';
-                ctx.stroke();
+//                 ctx.beginPath();
+//                 ctx.arc(w / 2, h / 2, joystickRadius, 0, 2 * Math.PI, false);
+//                 ctx.strokeStyle = 'rgb(50, 50, 50)';
+//                 ctx.stroke();
 
-                ctx.beginPath();
-                ctx.arc(x, y, innerRadius, 0, 2 * Math.PI, false);
-                ctx.fillStyle = 'rgb(120, 120, 120)';
-                ctx.fill();
-                ctx.strokeStyle = 'rgb(50, 50, 50)';
-                ctx.stroke();
-            }
-            drawJoystick(previewContext);
+//                 ctx.beginPath();
+//                 ctx.arc(x, y, innerRadius, 0, 2 * Math.PI, false);
+//                 ctx.fillStyle = 'rgb(120, 120, 120)';
+//                 ctx.fill();
+//                 ctx.strokeStyle = 'rgb(50, 50, 50)';
+//                 ctx.stroke();
+//             }
+//             drawJoystick(previewContext);
 
-            var xhr = new XMLHttpRequest();
-            xhr.addEventListener("load", (event) => {canSend = true;});
-            let canSend = true;
-            window.blockMenuHeaderScroll = false;
-            let ticks = 0;
+//             var xhr = new XMLHttpRequest();
+//             xhr.addEventListener("load", (event) => {canSend = true;});
+//             let canSend = true;
+//             window.blockMenuHeaderScroll = false;
+//             let ticks = 0;
 
-            let prevSpeed;
-            let prevDirection;
-            window.onmousemove = (event) => {
-                if (event.buttons != 1 && event.touches == undefined)
-                    return;
-                if (event.touches)
-                    event = event.touches[0];
+//             let prevSpeed;
+//             let prevDirection;
+//             window.onmousemove = (event) => {
+//                 if (event.buttons != 1 && event.touches == undefined)
+//                     return;
+//                 if (event.touches)
+//                     event = event.touches[0];
 
-                let rect = canvas.getBoundingClientRect();
-                x = (event.clientX - rect.left);
-                y = (event.clientY - rect.top);
+//                 let rect = canvas.getBoundingClientRect();
+//                 x = (event.clientX - rect.left);
+//                 y = (event.clientY - rect.top);
 
-                dx = w / 2 - x;
-                dy = h / 2 - y;
-                let maxSpeed = 90000000;
+//                 dx = w / 2 - x;
+//                 dy = h / 2 - y;
+//                 let maxSpeed = 90000000;
 
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                let direction = Math.atan2(dy, dx);
+//                 let dist = Math.sqrt(dx*dx + dy*dy);
+//                 let direction = Math.atan2(dy, dx);
 
-                if (dist > joystickRadius) {
-                    if (ticks == 0)
-                        return;
-                    x = w / 2 - Math.cos(direction) * joystickRadius;
-                    y = h / 2 - Math.sin(direction) * joystickRadius;
-                }
-                direction = direction * 180 / Math.PI - 90;
-                let speed = Math.min(maxSpeed, dist * maxSpeed / joystickRadius);
+//                 if (dist > joystickRadius) {
+//                     if (ticks == 0)
+//                         return;
+//                     x = w / 2 - Math.cos(direction) * joystickRadius;
+//                     y = h / 2 - Math.sin(direction) * joystickRadius;
+//                 }
+//                 direction = direction * 180 / Math.PI - 90;
+//                 let speed = Math.min(maxSpeed, dist * maxSpeed / joystickRadius);
 
-                speed = Math.round(speed);
-                direction = Math.round(direction) % 360;
+//                 speed = Math.round(speed);
+//                 direction = Math.round(direction) % 360;
 
-                if (canSend) {
-                  if (prevSpeed != speed && prevDirection != direction) {
-                    xhr.open("GET", `/update?speed=${speed}&direction=${direction}`, true);
-                    xhr.send();
-                    prevSpeed = speed;
-                    prevDirection = direction;
-                    canSend = false;
-                  } else if (prevSpeed != speed) {
-                    xhr.open("GET", `/speed?value=${speed}`, true);
-                    xhr.send();
-                    prevSpeed = speed;
-                    canSend = false;
-                  } else if (prevDirection != direction) {
-                    xhr.open("GET", `/direction?value=${direction}`, true);
-                    xhr.send();
-                    prevDirection = direction;
-                    canSend = false;
-                  }
-                }
+//                 if (canSend) {
+//                   if (prevSpeed != speed && prevDirection != direction) {
+//                     xhr.open("GET", `/update?speed=${speed}&direction=${direction}`, true);
+//                     xhr.send();
+//                     prevSpeed = speed;
+//                     prevDirection = direction;
+//                     canSend = false;
+//                   } else if (prevSpeed != speed) {
+//                     xhr.open("GET", `/speed?value=${speed}`, true);
+//                     xhr.send();
+//                     prevSpeed = speed;
+//                     canSend = false;
+//                   } else if (prevDirection != direction) {
+//                     xhr.open("GET", `/direction?value=${direction}`, true);
+//                     xhr.send();
+//                     prevDirection = direction;
+//                     canSend = false;
+//                   }
+//                 }
 
-                drawJoystick(previewContext);
-                ticks++;
-            };
-            var closeXHR = new XMLHttpRequest();
-            window.onmouseup = () => {
+//                 drawJoystick(previewContext);
+//                 ticks++;
+//             };
+//             var closeXHR = new XMLHttpRequest();
+//             window.onmouseup = () => {
                 
-              x = w / 2;
-              y = h / 2;
-              drawJoystick(previewContext);
+//               x = w / 2;
+//               y = h / 2;
+//               drawJoystick(previewContext);
               
-              for (let i = 0; i < 4; i++) {
-                closeXHR.open("GET", "/speed?value=0", true);
-                closeXHR.send();
-              }
+//               for (let i = 0; i < 4; i++) {
+//                 closeXHR.open("GET", "/speed?value=0", true);
+//                 closeXHR.send();
+//               }
 
-              ticks = 0;
-            }
-            document.addEventListener('touchmove', function(e) {window.onmousemove(e)}, false);
-            document.addEventListener('touchend', function(e) {window.onmouseup(e)}, false);
-        </script>
-      </body>
-    </html>
-  )rawliteral";
+//               ticks = 0;
+//             }
+//             document.addEventListener('touchmove', function(e) {window.onmousemove(e)}, false);
+//             document.addEventListener('touchend', function(e) {window.onmouseup(e)}, false);
+//         </script>
+//       </body>
+//     </html>
+//   )rawliteral";
 
-  return index_html;
-}
+//   return index_html;
+// }
 

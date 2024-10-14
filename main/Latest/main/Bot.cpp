@@ -1,35 +1,30 @@
 #include "Arduino.h"
 #include "Bot.h"
 
-int ticks = 0;
 void Bot::update() {
-  if (++ticks % 10 == 0) {
-    Serial.println("e");
+  mode = logic.update();
 
-    mode = logic.update();
+  switch (mode) {
+    case CALIBRATION:
+      logic.calibrate();
+      break;
+      
+    case NEUTRAL:
+      logic.readBall();
+      logic.updateEstimatedPosition();
+      logic.stop();
+      logic.reachedPosition = false;
+      break;
 
-    switch (mode) {
-      case CALIBRATION:
-        logic.calibrate();
-        break;
-        
-      case NEUTRAL:
-        logic.readBall();
-        logic.updateEstimatedPosition();
-        logic.stop();
-        logic.reachedPosition = false;
-        break;
-
-      case RUNNING:
-        // REMOTE CONTROL STUFF
-        // if (speed != 0) {
-        //   logic.motor5.setSpeed(80000000);
-        //   logic.manual(direction, speed);
-        // } else {
-        logic.logic();
-        // }
-        break;
-    }
+    case RUNNING:
+      // REMOTE CONTROL STUFF
+      // if (speed != 0) {
+      //   logic.motor5.setSpeed(80000000);
+      //   logic.manual(direction, speed);
+      // } else {
+      logic.logic();
+      // }
+      break;
   }
 }
 
