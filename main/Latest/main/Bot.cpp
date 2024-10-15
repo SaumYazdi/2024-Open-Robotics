@@ -10,8 +10,21 @@ void Bot::update() {
       break;
       
     case NEUTRAL:
-      logic.readBall();
-      logic.updateEstimatedPosition();
+      logic.readBallAndGoals();
+      
+      Serial.print(logic.yellowAngle);
+      Serial.print(", ");
+      Serial.print(logic.yellowDist);
+      Serial.print(" | ");
+      Serial.print(logic.blueAngle);
+      Serial.print(", ");
+      Serial.print(logic.blueDist);
+      Serial.print(" | ");
+      Serial.print(logic.positionX);
+      Serial.print(", ");
+      Serial.println(logic.positionY);
+
+      // logic.updateEstimatedPosition();
       logic.stop();
       logic.reachedPosition = false;
       break;

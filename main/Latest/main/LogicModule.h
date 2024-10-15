@@ -25,7 +25,7 @@ class LogicModule {
     void setReports();
     float calculateFinalDirection(float correction);
     void moveRobot(float direction, float rotation, float targetSpeed = 1.0, float rotationScalingFactor = 0.030);
-    bool readBall();
+    bool readBallAndGoals();
     void readIMU();
     void readTOFs();
     double simulateToF(double tx, double ty, double heading_deg, double sensor_offset, double sensor_angle_deg);
@@ -86,7 +86,14 @@ class LogicModule {
     float ballAngle = -9999999;
     bool seesBall = false;
 
+    float yellowAngle = -1;
+    float blueAngle = -1;
+    float yellowDist = -1;
+    float blueDist = -1;
+
     uint8_t strategy = 0;
+
+    uint8_t team;
 
     float targetDirection;
     float targetRotation;

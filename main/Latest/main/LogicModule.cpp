@@ -10,6 +10,9 @@
 #define switchMiddle 12
 #define switchUp 11
 
+#define blueTeam 4
+#define yellowTeam 5
+
 struct euler_t {
   float yaw;
   float pitch;
@@ -121,7 +124,7 @@ const float threeSixty = static_cast<float>(360);
 
 int byteCounter = 0;
 const int startSequenceLength = 4;
-const int BYTE_COUNT = 12;
+const int BYTE_COUNT = 20;
 char transmissionData[BYTE_COUNT];
 
 Adafruit_BNO08x bno08x(BNO08X_RESET);
@@ -230,6 +233,9 @@ void LogicModule::setup() {
   pinMode(switchMiddle, OUTPUT);
   pinMode(switchUp, INPUT_PULLDOWN);
 
+  pinMode(blueTeam, INPUT_PULLDOWN);
+  pinMode(yellowTeam, OUTPUT);
+
   for (int i = 0; i < 5; i++) {
     tofs[i] = SteelBarToF(tofAddresses[i], &Wire);
   }
@@ -252,11 +258,11 @@ void LogicModule::setReports() {
   // }
 }
 
-bool LogicModule::readBall() {
+bool LogicModule::readBallAndGoals() {
   if (Serial1.available() > 0) {
-    char receviedChar = Serial1.read();
+    char receivedChar = Serial1.read();
 
-    transmissionData[byteCounter] = receviedChar;
+    transmissionData[byteCounter] = receivedChar;
 
     // To prevent uart interface going out of order, at the start of the char sequence, reset bytes index
     if (transmissionData[byteCounter] == 0xab && transmissionData[(byteCounter + 1) % BYTE_COUNT] == 0xcd && transmissionData[(byteCounter + 2) % BYTE_COUNT] == 0xef && transmissionData[(byteCounter + 3) % BYTE_COUNT] == 0x69) {
@@ -272,6 +278,31 @@ bool LogicModule::readBall() {
 
       uint8_t angleBytes[4] = { transmissionData[startSequenceLength + 4], transmissionData[startSequenceLength + 5], transmissionData[startSequenceLength + 6], transmissionData[startSequenceLength + 7] };
       float angle = bytesToFloat(angleBytes);
+
+      // uint8_t yellowGoalBytes[4] = { transmissionData[startSequenceLength + 8], transmissionData[startSequenceLength + 9], transmissionData[startSequenceLength + 10], transmissionData[startSequenceLength + 11] };
+      // yellowAngle = bytesToFloat(yellowGoalBytes);
+
+      // uint8_t blueGoalBytes[4] = { transmissionData[startSequenceLength + 12], transmissionData[startSequenceLength + 13], transmissionData[startSequenceLength + 14], transmissionData[startSequenceLength + 15] };
+      // blueAngle = bytesToFloat(blueGoalBytes);
+
+      // if (yellowAngle != -1 && blueAngle != -1) {
+      //   // float correction = correctedHeading();
+      //   // yellowAngle -= correction * DEG_TO_RAD;
+      //   // blueAngle -= correction * DEG_TO_RAD;
+      //   float cy = cosf(yellowAngle);
+      //   float cb = cosf(blueAngle);
+      //   float det = cb * sinf(yellowAngle) - cy * sinf(blueAngle);
+      //   yellowDist = 243.0 * cb / det;
+      //   blueDist = 243.0 * cy / det;
+
+      //   if (team == blueTeam) { // SWITCH FLICKED LEFT
+      //     positionX = 91.0 + yellowDist * cosf(yellowAngle);
+      //     positionY = yellowDist * sinf(yellowAngle);
+      //   } else { // SWITCH FLICKED RIGHT
+      //     positionX = 91.0 + blueDist * cosf(blueAngle);
+      //     positionY = blueDist * sinf(blueAngle);
+      //   }
+      // }
 
       // if (abs(angle) > 0.01 && abs(dist) > 0.01 && abs(angle) < 360 && abs(dist) < 300) { // CULL OVERFLOW DATA DUE TO i2c INTERFERENCE
       ballDistance = dist;
@@ -521,7 +552,7 @@ void LogicModule::odometry(float direction) {
 }
 
 void LogicModule::stop() {
-  bool seesBall = readBall();
+  bool seesBall = readBallAndGoals();
 
   kickoffTicks = 0;
 
@@ -535,8 +566,8 @@ void LogicModule::stop() {
 void LogicModule::calibrate() {
   readIMU();
   initialHeading = ypr.yaw;
-  positionX = 0.;
-  positionY = 0.;
+  positionX = FIELD_WIDTH / 2;
+  positionY = FIELD_HEIGHT / 2;
   velocityX = 0.;
   velocityY = 0.;
   accelerationX = 0.;
@@ -801,7 +832,6 @@ void LogicModule::logic(float direction, float speed) {
     return;
   }
 
-  readBall();
   // updateEstimatedPosition();
 
   // Increment lostTicks for every update that the ball is not seen.
@@ -889,6 +919,13 @@ int LogicModule::update() {
     mode = RUNNING;
   } else {
     mode = NEUTRAL;
+  }
+
+  digitalWrite(yellowTeam, HIGH);
+  if (digitalRead(blueTeam)) {
+    team = blueTeam;
+  } else {
+    team = yellowTeam;
   }
 
   return mode;
