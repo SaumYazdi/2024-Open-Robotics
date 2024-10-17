@@ -219,49 +219,28 @@ class DownFacingCamera:
     
     def get_mask(self, frame):
         blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        cv2.drawContours(rgb, [numpy.array([ (0, 0), (r, 0), (0, r) ])], 0, (0, 255, 0), -1)
-        cv2.drawContours(rgb, [numpy.array([ (0, h), (r, h), (0, h - r) ])], 0, (0, 255, 0), -1)
-        cv2.drawContours(rgb, [numpy.array([ (w, h), (w - r, h), (w, h - r) ])], 0, (0, 255, 0), -1)
-        cv2.drawContours(rgb, [numpy.array([ (w, 0), (w - r, 0), (w, r) ])], 0, (0, 255, 0), -1)
+        # cv2.drawContours(rgb, [numpy.array([ (0, 0), (r, 0), (0, r) ])], 0, (0, 255, 0), -1)
+        # cv2.drawContours(rgb, [numpy.array([ (0, h), (r, h), (0, h - r) ])], 0, (0, 255, 0), -1)
+        # cv2.drawContours(rgb, [numpy.array([ (w, h), (w - r, h), (w, h - r) ])], 0, (0, 255, 0), -1)
+        # cv2.drawContours(rgb, [numpy.array([ (w, 0), (w - r, 0), (w, r) ])], 0, (0, 255, 0), -1)
         
         cv2.drawContours(rgb, [numpy.array(circlePoints)], 0, (0, 255, 0), -1)
         cv2.drawContours(rgb, [numpy.array(innerMask)], 0, (255, 255, 0), -1)
         
-        lower = (175, 0, 0)
-        upper = (255, 90, 20)
-        mask = cv2.inRange(rgb, lower, upper)
-        # mask_color = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
-        # cv2.imshow("mask", cv2.bitwise_and(rgb, mask_color))
-        # key = cv2.waitKey(1) & 0xFF
-        lower = (128, 99, 0)
-        upper = (255, 186, 60)
-        self.yellow_goal_mask = cv2.inRange(rgb, lower, upper)
-        lower = (0, 30, 103)
-        upper = (52, 176, 255)
-        self.blue_goal_mask = cv2.inRange(rgb, lower, upper)
+        ball_lower = (175, 0, 0)
+        ball_upper = (255, 90, 20)
+        mask = cv2.inRange(rgb, ball_lower, ball_upper)
+        yellow_lower = (128, 99, 0)
+        yellow_upper = (255, 186, 60)
+        self.yellow_goal_mask = cv2.inRange(rgb, yellow_lower, yellow_upper)
+        blue_lower = (0, 30, 103)
+        blue_upper = (52, 176, 255)
+        self.blue_goal_mask = cv2.inRange(rgb, blue_lower, blue_upper)
 
         return mask
-        
-        mask = cv2.inRange(hsv, lower, upper)
-        mask = cv2.inRange(hsv, self.hsv_lower, self.hsv_upper)
-        mask = cv2.erode(mask, None, iterations=2)
-        mask = cv2.dilate(mask, None, iterations=2)
-
-        with open(save_path, "r") as f:
-            data = json.load(f)
-        skin_lower = data["skin"]["lower"]
-        skin_upper = data["skin"]["upper"]
-        skin = cv2.inRange(hsv, numpy.array(skin_lower), numpy.array(skin_upper))
-        skin = cv2.erode(skin, None, iterations=2)
-        skin = cv2.dilate(skin, None, iterations=2)
-        
-        filtered_mask = cv2.bitwise_and(mask, cv2.bitwise_not(skin))
-        
-        return filtered_mask
-
+    
     def get_distance(self):
         # if self.radius is None:
             # return None
@@ -290,27 +269,41 @@ class DownFacingCamera:
                     # center=self.camera_center, radius=self.mask_radius,
                     # color=(0, 255, 0), thickness=1)
                 
+        CNT_SIZE = 48
         if type(self.yellow_goal_mask) != None:
             yel = imutils.grab_contours(cv2.findContours(self.yellow_goal_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE))
             if len(yel) > 0:
                 cnt = sorted(yel, key=lambda x: x.size)[-1]
                 m = cv2.moments(cnt)
-                if m['m00'] != 0:
-                    self.yellow_center = [ int(m['m10']/m['m00']), int(m['m01']/m['m00']) ]
-                    cv2.drawMarker(frame, self.yellow_center, (255, 0, 255))
+                if m['m00'] != 0 and cnt.size > CNT_SIZE:
+                    self.yellow_center = [ int(m['m10'] / m['m00']), int(m['m01'] / m['m00']) ]
+                    if self.draw_detections:
+                        cv2.drawMarker(frame, self.yellow_center, (255, 0, 255))
         if type(self.blue_goal_mask) != None:
             blue = imutils.grab_contours(cv2.findContours(self.blue_goal_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE))
             if len(blue) > 0:
                 cnt = sorted(blue, key=lambda x: x.size)[-1]
                 m = cv2.moments(cnt)
-                if m['m00'] != 0:
+                if m['m00'] != 0 and cnt.size > CNT_SIZE:
                     self.blue_center = [ int(m['m10']/m['m00']), int(m['m01']/m['m00']) ]
-                    cv2.drawMarker(frame, self.blue_center, (255, 0, 255))
+                    if self.draw_detections:
+                        cv2.drawMarker(frame, self.blue_center, (255, 0, 255))
                     
         self.yellow_angle = pi/2 - atan2(self.yellow_center[1] - camera_center[1], self.yellow_center[0] - camera_center[0])
         self.yellow_angle = self.yellow_angle % (2 * pi)
         self.blue_angle = pi/2 - atan2(self.blue_center[1] - camera_center[1], self.blue_center[0] - camera_center[0])
         self.blue_angle = self.blue_angle % (2 * pi)
+
+        cy = cos(self.yellow_angle)
+        cb = cos(self.blue_angle)
+        det = cb * sin(self.yellow_angle) - cy * sin(self.blue_angle)
+        goalToGoalLength = (243.0 - 21.5 * 2)
+        yellow_dist = goalToGoalLength * cb / det
+        blue_dist = goalToGoalLength * cy / det
+
+        positionX = 91.0 + yellow_dist * cos(self.yellow_angle)
+        positionY = 21.5 + yellow_dist * sin(self.yellow_angle)
+        print(f"Y: {yellow_dist}, B: {blue_dist} | x: {positionX}, y: {positionY}")
             
         if len(contours) > 0:
             
@@ -368,7 +361,6 @@ class DownFacingCamera:
                         red = frame[y, x][2]
                         green = frame[y, x][1]
                         blue = frame[y, x][0]
-                        # print(red, green, blue)
                         try:
                             if red > 80 and green < 40 and blue < 80:
                                 self.distance = 12
@@ -418,9 +410,7 @@ class DownFacingCamera:
         return self.video_stream.capture_array()
     
     def _update(self):
-        # start = perf_counter()
         frame = self.read()
-        # print(f"'read frame' took {(perf_counter() - start) * 1000:.2f}ms")
         
         if frame is None:
             return

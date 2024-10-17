@@ -279,30 +279,29 @@ bool LogicModule::readBallAndGoals() {
       uint8_t angleBytes[4] = { transmissionData[startSequenceLength + 4], transmissionData[startSequenceLength + 5], transmissionData[startSequenceLength + 6], transmissionData[startSequenceLength + 7] };
       float angle = bytesToFloat(angleBytes);
 
-      // uint8_t yellowGoalBytes[4] = { transmissionData[startSequenceLength + 8], transmissionData[startSequenceLength + 9], transmissionData[startSequenceLength + 10], transmissionData[startSequenceLength + 11] };
-      // yellowAngle = bytesToFloat(yellowGoalBytes);
+      uint8_t yellowGoalBytes[4] = { transmissionData[startSequenceLength + 8], transmissionData[startSequenceLength + 9], transmissionData[startSequenceLength + 10], transmissionData[startSequenceLength + 11] };
+      yellowAngle = bytesToFloat(yellowGoalBytes);
 
-      // uint8_t blueGoalBytes[4] = { transmissionData[startSequenceLength + 12], transmissionData[startSequenceLength + 13], transmissionData[startSequenceLength + 14], transmissionData[startSequenceLength + 15] };
-      // blueAngle = bytesToFloat(blueGoalBytes);
+      uint8_t blueGoalBytes[4] = { transmissionData[startSequenceLength + 12], transmissionData[startSequenceLength + 13], transmissionData[startSequenceLength + 14], transmissionData[startSequenceLength + 15] };
+      blueAngle = bytesToFloat(blueGoalBytes);
 
-      // if (yellowAngle != -1 && blueAngle != -1) {
-      //   // float correction = correctedHeading();
-      //   // yellowAngle -= correction * DEG_TO_RAD;
-      //   // blueAngle -= correction * DEG_TO_RAD;
-      //   float cy = cosf(yellowAngle);
-      //   float cb = cosf(blueAngle);
-      //   float det = cb * sinf(yellowAngle) - cy * sinf(blueAngle);
-      //   yellowDist = 243.0 * cb / det;
-      //   blueDist = 243.0 * cy / det;
-
-      //   if (team == blueTeam) { // SWITCH FLICKED LEFT
-      //     positionX = 91.0 + yellowDist * cosf(yellowAngle);
-      //     positionY = yellowDist * sinf(yellowAngle);
-      //   } else { // SWITCH FLICKED RIGHT
-      //     positionX = 91.0 + blueDist * cosf(blueAngle);
-      //     positionY = blueDist * sinf(blueAngle);
-      //   }
-      // }
+      if (yellowAngle != -1 && blueAngle != -1) {
+        // float correction = correctedHeading();
+        // yellowAngle -= correction * DEG_TO_RAD;
+        // blueAngle -= correction * DEG_TO_RAD;
+        float cy = cosf(yellowAngle);
+        float cb = cosf(blueAngle);
+        float det = cb * sinf(yellowAngle) - cy * sinf(blueAngle);
+        yellowDist = 243.0 * cb / det;
+        blueDist = 243.0 * cy / det;
+      }
+      if (team == blueTeam) { // SWITCH FLICKED LEFT
+        positionX = 91.0 + yellowDist * cosf(yellowAngle);
+        positionY = yellowDist * sinf(yellowAngle);
+      } else { // SWITCH FLICKED RIGHT
+        positionX = 91.0 + blueDist * cosf(blueAngle);
+        positionY = blueDist * sinf(blueAngle);
+      }
 
       // if (abs(angle) > 0.01 && abs(dist) > 0.01 && abs(angle) < 360 && abs(dist) < 300) { // CULL OVERFLOW DATA DUE TO i2c INTERFERENCE
       ballDistance = dist;
