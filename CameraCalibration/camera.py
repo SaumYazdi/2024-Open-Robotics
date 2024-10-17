@@ -166,6 +166,8 @@ class DownFacingCamera:
                 controls={'FrameRate': 60},
             )
             self.video_stream.configure(config)
+            self.video_stream.controls.ExposureTime = 8000
+            self.video_stream.controls.Saturation = 1.4
             
         elif DEVICE == "pc":
             self.video_stream = VideoStream(src=0).start()
@@ -180,8 +182,15 @@ class DownFacingCamera:
         self.pos = None
         self.radius = None
         self.radial_distance = None
+        self.yellow_goal_mask = None
+        self.blue_goal_mask = None
         # self.velocity = None
         # self.points = deque(maxlen=BUFFER_SIZE)
+        
+        self.yellow_center = None
+        self.blue_center = None
+        self.yellow_angle = None
+        self.blue_angle = None
         
         self.distance = None
         self.angle = None
@@ -213,26 +222,28 @@ class DownFacingCamera:
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        lower = (216, 0, 0)
-        upper = (255, 50, 5)
+        cv2.drawContours(rgb, [numpy.array([ (0, 0), (r, 0), (0, r) ])], 0, (0, 255, 0), -1)
+        cv2.drawContours(rgb, [numpy.array([ (0, h), (r, h), (0, h - r) ])], 0, (0, 255, 0), -1)
+        cv2.drawContours(rgb, [numpy.array([ (w, h), (w - r, h), (w, h - r) ])], 0, (0, 255, 0), -1)
+        cv2.drawContours(rgb, [numpy.array([ (w, 0), (w - r, 0), (w, r) ])], 0, (0, 255, 0), -1)
+        
+        cv2.drawContours(rgb, [numpy.array(circlePoints)], 0, (0, 255, 0), -1)
+        cv2.drawContours(rgb, [numpy.array(innerMask)], 0, (255, 255, 0), -1)
+        
+        lower = (175, 0, 0)
+        upper = (255, 90, 20)
         mask = cv2.inRange(rgb, lower, upper)
         # mask_color = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
         # cv2.imshow("mask", cv2.bitwise_and(rgb, mask_color))
         # key = cv2.waitKey(1) & 0xFF
+        lower = (128, 99, 0)
+        upper = (255, 186, 60)
+        self.yellow_goal_mask = cv2.inRange(rgb, lower, upper)
+        lower = (0, 30, 103)
+        upper = (52, 176, 255)
+        self.blue_goal_mask = cv2.inRange(rgb, lower, upper)
 
         return mask
-        
-        if key == ord("q"):
-            self.stop()
-            quit()
-        
-        cv2.drawContours(hsv, [numpy.array([ (0, 0), (r, 0), (0, r) ])], 0, (0, 255, 0), -1)
-        cv2.drawContours(hsv, [numpy.array([ (0, h), (r, h), (0, h - r) ])], 0, (0, 255, 0), -1)
-        cv2.drawContours(hsv, [numpy.array([ (w, h), (w - r, h), (w, h - r) ])], 0, (0, 255, 0), -1)
-        cv2.drawContours(hsv, [numpy.array([ (w, 0), (w - r, 0), (w, r) ])], 0, (0, 255, 0), -1)
-        
-        cv2.drawContours(hsv, [numpy.array(circlePoints)], 0, (0, 255, 0), -1)
-        cv2.drawContours(hsv, [numpy.array(innerMask)], 0, (255, 255, 0), -1)
         
         mask = cv2.inRange(hsv, lower, upper)
         mask = cv2.inRange(hsv, self.hsv_lower, self.hsv_upper)
@@ -279,6 +290,28 @@ class DownFacingCamera:
                     # center=self.camera_center, radius=self.mask_radius,
                     # color=(0, 255, 0), thickness=1)
                 
+        if type(self.yellow_goal_mask) != None:
+            yel = imutils.grab_contours(cv2.findContours(self.yellow_goal_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE))
+            if len(yel) > 0:
+                cnt = sorted(yel, key=lambda x: x.size)[-1]
+                m = cv2.moments(cnt)
+                if m['m00'] != 0:
+                    self.yellow_center = [ int(m['m10']/m['m00']), int(m['m01']/m['m00']) ]
+                    cv2.drawMarker(frame, self.yellow_center, (255, 0, 255))
+        if type(self.blue_goal_mask) != None:
+            blue = imutils.grab_contours(cv2.findContours(self.blue_goal_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE))
+            if len(blue) > 0:
+                cnt = sorted(blue, key=lambda x: x.size)[-1]
+                m = cv2.moments(cnt)
+                if m['m00'] != 0:
+                    self.blue_center = [ int(m['m10']/m['m00']), int(m['m01']/m['m00']) ]
+                    cv2.drawMarker(frame, self.blue_center, (255, 0, 255))
+                    
+        self.yellow_angle = pi/2 - atan2(self.yellow_center[1] - camera_center[1], self.yellow_center[0] - camera_center[0])
+        self.yellow_angle = self.yellow_angle % (2 * pi)
+        self.blue_angle = pi/2 - atan2(self.blue_center[1] - camera_center[1], self.blue_center[0] - camera_center[0])
+        self.blue_angle = self.blue_angle % (2 * pi)
+            
         if len(contours) > 0:
             
             # Merge contours into a convex contour to be fitted with ellipse
@@ -292,7 +325,7 @@ class DownFacingCamera:
                 cnt = sorted_contours[i]
                 
                 # Skip over contour if size is too small
-                if cnt.size < 25:
+                if cnt.size < 30:
                     continue
                     
                 # Compute center of contour
@@ -314,7 +347,7 @@ class DownFacingCamera:
                     cv2.drawMarker(frame, (cX, cY), (255, 0, 0))
                 for pt in cnt:
                     points.append(pt)
-            
+                    
             if len(points) > 4:
                 c = cv2.convexHull(numpy.array(points, dtype=numpy.int32))
                 
@@ -329,18 +362,21 @@ class DownFacingCamera:
                     self.radial_distance = sqrt(delta_pos[0]**2 + delta_pos[1]**2)
                     self.radius = size[0] * size[1]
                     
-                    x = int(self.camera_center[0] + self.mask_radius + 10)
-                    y = int(self.camera_center[1])
-                    red = frame[y, x][2]
-                    green = frame[y, x][1]
-                    blue = frame[y, x][0]
-                    try:
-                        if red > 80 and green < 50 and blue < 50:
-                            self.distance = 12
-                        else:
-                            self.distance = get_dist(self.radius / self.radial_distance)
-                    except PermissionError:
-                        pass
+                    if self.detect_back:
+                        x = int(self.camera_center[0] + self.mask_radius + 10)
+                        y = int(self.camera_center[1])
+                        red = frame[y, x][2]
+                        green = frame[y, x][1]
+                        blue = frame[y, x][0]
+                        # print(red, green, blue)
+                        try:
+                            if red > 80 and green < 40 and blue < 80:
+                                self.distance = 12
+                            else:
+                                self.distance = get_dist(self.radius / self.radial_distance)
+                        except PermissionError:
+                            pass
+                        cv2.drawMarker(frame, (x, y), (255, 0, 0))
                     scale = size[0] * .006
                     
                     with open(save_path, "r") as f:
@@ -351,8 +387,10 @@ class DownFacingCamera:
                         x = back[0]
                         y = back[1]
                         red = frame[y, x][2]
+                        green = frame[y, x][1]
+                        blue = frame[y, x][0]
                         
-                        if red > 240:
+                        if red > 80 and green < 50 and blue < 50:
                             self.distance = 14
                         
                         cv2.drawMarker(frame, back, (255, 255, 0))
@@ -456,18 +494,19 @@ if __name__ == "__main__":
     threads = []
     
     camera1 = DownFacingCamera("Camera1", preview=True, draw_detections=True, camera_port=0, detect_back=True)
-    camera2 = DownFacingCamera("Camera2", preview=True, draw_detections=True, camera_port=1)
+    # camera2 = DownFacingCamera("Camera2", preview=True, draw_detections=True, camera_port=1)
     
     sleep(1)
     
     def show_cameras():
         while True:
             if camera1.image is not None: cv2.imshow("FrontBack", camera1.image)
-            if camera2.image is not None: cv2.imshow("SideToSide", camera2.image)
+            # if camera1.yellow_goal_mask is not None: cv2.imshow("goals", camera1.yellow_goal_mask)
+            # if camera2.image is not None: cv2.imshow("SideToSide", camera2.image)
             cv2.waitKey(1)
     
     threads.append(Thread(target=camera1.start))
-    threads.append(Thread(target=camera2.start))
+    # threads.append(Thread(target=camera2.start))
     threads.append(Thread(target=show_cameras))
     
     for thread in threads:
