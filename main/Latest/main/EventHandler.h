@@ -16,9 +16,9 @@ class EventHandler {
     PowerfulBLDCdriver *motor5;
 
   private:
-    const int maxMotorSpeed = 90000000;
+    const int maxMotorSpeed = 91000000;
 
-    const int commandInterval = 10; // in milliseconds; delay to send i2c commands to update motor speed
+    const int commandInterval = 90; // in milliseconds; delay to send i2c commands to update motor speed
     unsigned long prevTime = millis();
     unsigned long deltaTime = 0;
     int motorNumber;

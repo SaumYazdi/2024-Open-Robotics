@@ -294,16 +294,19 @@ class DownFacingCamera:
         self.blue_angle = pi/2 - atan2(self.blue_center[1] - camera_center[1], self.blue_center[0] - camera_center[0])
         self.blue_angle = self.blue_angle % (2 * pi)
 
-        cy = cos(self.yellow_angle)
-        cb = cos(self.blue_angle)
-        det = cb * sin(self.yellow_angle) - cy * sin(self.blue_angle)
-        goalToGoalLength = (243.0 - 21.5 * 2)
-        yellow_dist = goalToGoalLength * cb / det
-        blue_dist = goalToGoalLength * cy / det
+        # Localisation via goal angles
+        if self.draw_detections:
+            cy = cos(self.yellow_angle)
+            cb = cos(self.blue_angle)
+            det = cb * sin(self.yellow_angle) - cy * sin(self.blue_angle)
+            goalToGoalLength = (243.0 - 21.5 * 2)
+            yellow_dist = goalToGoalLength * cb / det
+            blue_dist = goalToGoalLength * cy / det
 
-        positionX = 91.0 + yellow_dist * cos(self.yellow_angle)
-        positionY = 21.5 + yellow_dist * sin(self.yellow_angle)
-        print(f"Y: {yellow_dist}, B: {blue_dist} | x: {positionX}, y: {positionY}")
+            if det != 0:
+                positionX = 91.0 + yellow_dist * cos(self.yellow_angle)
+                positionY = 21.5 + yellow_dist * sin(self.yellow_angle)
+                print(f"ay: {self.yellow_angle:.1f} ab: {self.blue_angle:.1f} | Y: {yellow_dist:.1f}, B: {blue_dist:.1f} | x: {positionX:.1f}, y: {positionY:.1f}")
             
         if len(contours) > 0:
             

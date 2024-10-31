@@ -13,6 +13,9 @@
 #define blueTeam 4
 #define yellowTeam 5
 
+// Motor IDs
+#define DRIBBLER 5
+
 struct euler_t {
   float yaw;
   float pitch;
@@ -81,8 +84,8 @@ void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr) {
 
   // In radians
   ypr->yaw = atan2(2.0 * (qi * qj + qk * qr), (sqi - sqj - sqk + sqr));
-  ypr->pitch = asin(-2.0 * (qi * qk - qj * qr) / (sqi + sqj + sqk + sqr));
-  ypr->roll = atan2(2.0 * (qj * qk + qi * qr), (-sqi - sqj + sqk + sqr));
+  // ypr->pitch = asin(-2.0 * (qi * qk - qj * qr) / (sqi + sqj + sqk + sqr));
+  // ypr->roll = atan2(2.0 * (qj * qk + qi * qr), (-sqi - sqj + sqk + sqr));
 }
 
 void quaternionToEulerRV(sh2_RotationVectorWAcc_t* rotational_vector, euler_t* ypr) {
@@ -124,7 +127,7 @@ const float threeSixty = static_cast<float>(360);
 
 int byteCounter = 0;
 const int startSequenceLength = 4;
-const int BYTE_COUNT = 20;
+const int BYTE_COUNT = 12;//20;
 char transmissionData[BYTE_COUNT];
 
 Adafruit_BNO08x bno08x(BNO08X_RESET);
@@ -236,9 +239,9 @@ void LogicModule::setup() {
   pinMode(blueTeam, INPUT_PULLDOWN);
   pinMode(yellowTeam, OUTPUT);
 
-  for (int i = 0; i < 5; i++) {
-    tofs[i] = SteelBarToF(tofAddresses[i], &Wire);
-  }
+  // for (int i = 0; i < 5; i++) {
+  //   tofs[i] = SteelBarToF(tofAddresses[i], &Wire);
+  // }
 
   delay(500);
 
@@ -279,33 +282,34 @@ bool LogicModule::readBallAndGoals() {
       uint8_t angleBytes[4] = { transmissionData[startSequenceLength + 4], transmissionData[startSequenceLength + 5], transmissionData[startSequenceLength + 6], transmissionData[startSequenceLength + 7] };
       float angle = bytesToFloat(angleBytes);
 
-      uint8_t yellowGoalBytes[4] = { transmissionData[startSequenceLength + 8], transmissionData[startSequenceLength + 9], transmissionData[startSequenceLength + 10], transmissionData[startSequenceLength + 11] };
-      yellowAngle = bytesToFloat(yellowGoalBytes);
-
-      uint8_t blueGoalBytes[4] = { transmissionData[startSequenceLength + 12], transmissionData[startSequenceLength + 13], transmissionData[startSequenceLength + 14], transmissionData[startSequenceLength + 15] };
-      blueAngle = bytesToFloat(blueGoalBytes);
-
-      if (yellowAngle != -1 && blueAngle != -1) {
-        // float correction = correctedHeading();
-        // yellowAngle -= correction * DEG_TO_RAD;
-        // blueAngle -= correction * DEG_TO_RAD;
-        float cy = cosf(yellowAngle);
-        float cb = cosf(blueAngle);
-        float det = cb * sinf(yellowAngle) - cy * sinf(blueAngle);
-        yellowDist = 243.0 * cb / det;
-        blueDist = 243.0 * cy / det;
-      }
-      if (team == blueTeam) { // SWITCH FLICKED LEFT
-        positionX = 91.0 + yellowDist * cosf(yellowAngle);
-        positionY = yellowDist * sinf(yellowAngle);
-      } else { // SWITCH FLICKED RIGHT
-        positionX = 91.0 + blueDist * cosf(blueAngle);
-        positionY = blueDist * sinf(blueAngle);
-      }
-
-      // if (abs(angle) > 0.01 && abs(dist) > 0.01 && abs(angle) < 360 && abs(dist) < 300) { // CULL OVERFLOW DATA DUE TO i2c INTERFERENCE
       ballDistance = dist;
       ballAngle = angle;
+      
+      // uint8_t yellowGoalBytes[4] = { transmissionData[startSequenceLength + 8], transmissionData[startSequenceLength + 9], transmissionData[startSequenceLength + 10], transmissionData[startSequenceLength + 11] };
+      // yellowAngle = bytesToFloat(yellowGoalBytes);
+
+      // uint8_t blueGoalBytes[4] = { transmissionData[startSequenceLength + 12], transmissionData[startSequenceLength + 13], transmissionData[startSequenceLength + 14], transmissionData[startSequenceLength + 15] };
+      // blueAngle = bytesToFloat(blueGoalBytes);
+
+      // if (yellowAngle != -1 && blueAngle != -1) {
+      //   // float correction = correctedHeading();
+      //   // yellowAngle -= correction * DEG_TO_RAD;
+      //   // blueAngle -= correction * DEG_TO_RAD;
+      //   float cy = cosf(yellowAngle);
+      //   float cb = cosf(blueAngle);
+      //   float det = cb * sinf(yellowAngle) - cy * sinf(blueAngle);
+      //   yellowDist = 200.0 * cb / det;
+      //   blueDist = 200.0 * cy / det;
+
+      //   if (det != 0) {
+      //     if (team == blueTeam) { // SWITCH FLICKED LEFT
+      //       positionX = 91.0 + yellowDist * cosf(yellowAngle);
+      //       positionY = 21.5 + yellowDist * sinf(yellowAngle);
+      //     } else { // SWITCH FLICKED RIGHT
+      //       positionX = 91.0 + blueDist * cosf(blueAngle);
+      //       positionY = 21.5 + blueDist * sinf(blueAngle);
+      //     }
+      //   }
       // }
     }
 
@@ -756,58 +760,71 @@ bool LogicModule::goToPosition(float targetX, float targetY, float rotation, flo
   return false;
 }
 
+float angleAdd(float angle, float increment = 0) {
+  return fmod(angle + 180 + increment, 360) - 180;
+}
+
 const uint8_t STRAIGHT_FORWARD = 1;
 const uint8_t HIDE_LEFT = 2;
 const uint8_t HIDE_RIGHT = 3;
 const uint8_t HIDE_BACK = 4;
-float dir; float dir2;
 const int firstHold = 400;
-const int secondHold = 2000;
-const int DEG_LEFT = 135; // How far to turn left to hide
-void LogicModule::doStrategy() {
-  float correction = correctedHeading();
+const int secondHold = 1000;
+float firstDirection; float secondDirection;
+void LogicModule::doStrategy(float correction) {
 
   switch (strategy) {
 
     case STRAIGHT_FORWARD:
-      moveRobot(correction, correction, 0.8);
+      moveRobot(correction, angleAdd(correction, 0.0), 0.8);
       break;
 
     case HIDE_LEFT:
-      dir = fmod(correction + 180 - DEG_LEFT, 360) - 180;
-      dir2 = fmod(correction + 180 - 75, 360) - 180;
+      firstDirection = angleAdd(correction, -135);
+      secondDirection = angleAdd(correction, -80);
       if (heldTicks < firstHold) {
         throwingBallTicks = 0;
-        moveRobot(correction, dir, 0.0, 0.0015);
+        moveRobot(correction, firstDirection, 0.40, 0.005);
+        events.setSpeed(DRIBBLER, 1.0);
       } else if (heldTicks < secondHold) {
         throwingBallTicks = 0;
-        moveRobot(correction, dir2, 0.45, 0.0002);
+        moveRobot(correction, firstDirection, 0.60, 0.001);
+        events.setSpeed(DRIBBLER, 1.0);
       }
       if (throwingBallTicks > 5 || heldTicks >= secondHold) {
-        moveRobot(correction, 1, 0.65, 10);
+        moveRobot(correction, correction, 0.60, 10);
         throwingBallTicks++;
       }
       break;
 
     case HIDE_RIGHT:
-      dir = fmod(correction - 90, 360) - 180;
+      firstDirection = angleAdd(correction, 90);
+      secondDirection = angleAdd(correction, 45);
       if (heldTicks < firstHold) {
-        moveRobot(correction, dir, 0.0, 0.005);
+        throwingBallTicks = 0;
+        moveRobot(correction, firstDirection, 0.0, 0.0015);
       } else if (heldTicks < secondHold) {
-        moveRobot(correction, dir, 0.6, 0.004);
-      } else {
-        moveRobot(correction, correction, 0.7, 0.005);
+        throwingBallTicks = 0;
+        moveRobot(correction, secondDirection, 0.45, 0.0009);
+      }
+      if (throwingBallTicks > 5 || heldTicks >= secondHold) {
+        moveRobot(correction, -1, 0.60, 10);
+        throwingBallTicks++;
       }
       break;
 
     case HIDE_BACK:
-      dir = fmod(correction + 180, 360) - 180;
+      firstDirection = angleAdd(correction, 180);
       if (heldTicks < firstHold) {
-        moveRobot(correction, dir, 0.0, 0.005);
+        throwingBallTicks = 0;
+        moveRobot(correction, firstDirection, 0.0, 0.0015);
       } else if (heldTicks < secondHold) {
-        moveRobot(correction, dir, 0.6, 0.004);
-      } else {
-        moveRobot(correction, correction, 0.7, 0.005);
+        throwingBallTicks = 0;
+        moveRobot(correction, firstDirection, 0.35, 0.0009);
+      }
+      if (throwingBallTicks > 5 || heldTicks >= secondHold) {
+        moveRobot(correction, 1, 0.60, 10);
+        throwingBallTicks++;
       }
       break;
 
@@ -826,10 +843,12 @@ void LogicModule::logic(float direction, float speed) {
   // Go straight forward at kickoff for a given amount of ticks.
   if (kickoffTicks < kickoffTicksMax) {
     kickoffTicks += 1;
-    events.setSpeed(5, 0.85);
+    events.setSpeed(DRIBBLER, 0.90);
     moveRobot(0, correction, 1.0);
     return;
   }
+
+  readBallAndGoals();
 
   // updateEstimatedPosition();
 
@@ -843,7 +862,7 @@ void LogicModule::logic(float direction, float speed) {
 
   // In game
   if (lostTicks < lostTicksMax) {
-    bool hasBall = (ballDistance < 20) && (-15 <= ballAngle && ballAngle <= 15);
+    bool hasBall = (ballDistance < 15.7) && (-10.0 <= ballAngle && ballAngle <= 10.0);
     if (hasBall) {
       hasBallTicks++;
     } else {
@@ -857,24 +876,28 @@ void LogicModule::logic(float direction, float speed) {
     if (hasBallTicks == hasBallTicksThreshold) {
       // Start of holding ball, runs once
       // Random number from 1 to 4
-      // strategy = static_cast<int>(random(1, 5));
-      strategy = HIDE_LEFT;
+      if (team == blueTeam) {
+        // strategy = static_cast<int>(random(1, 5));
+        strategy = HIDE_LEFT;
+      } else {
+        strategy = STRAIGHT_FORWARD;
+      }
 
     } else if (hasBallTicks > hasBallTicksThreshold || throwingBallTicks > 5) {
-      events.setSpeed(5, 1.0);
+      events.setSpeed(DRIBBLER, 1.0);
 
-      doStrategy();
+      doStrategy(correction);
       if (throwingBallTicks >= 200) {throwingBallTicks = 0;}
 
     } else {
       float direction = calculateFinalDirection(correction);
-      moveRobot(direction, correction, 0.75);
-      events.stop(5);
+      moveRobot(direction, correction, 0.70);
+      events.stop(DRIBBLER);
     }
 
     // Ball not seen for a bit
   } else {
-    events.stop(5);
+    events.stop(DRIBBLER);
 
     // Spin to look for ball
     if (ballAngle > 0) {

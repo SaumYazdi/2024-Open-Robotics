@@ -24,7 +24,7 @@ class LogicModule {
     void setup();
     void setReports();
     float calculateFinalDirection(float correction);
-    void moveRobot(float direction, float rotation, float targetSpeed = 1.0, float rotationScalingFactor = 0.030);
+    void moveRobot(float direction, float rotation, float targetSpeed = 1.0, float rotationScalingFactor = 0.018);
     bool readBallAndGoals();
     void readIMU();
     void readTOFs();
@@ -40,7 +40,7 @@ class LogicModule {
     void updateEstimatedPosition();
     bool goToPosition(float x, float y, float rotation, float speed);
 
-    void doStrategy();
+    void doStrategy(float correction);
 
     void backspinStrategy();
     void hideBallStrategy();

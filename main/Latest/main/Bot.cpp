@@ -12,13 +12,17 @@ void Bot::update() {
     case NEUTRAL:
       logic.readBallAndGoals();
       
-      Serial.print(logic.yellowAngle);
+      // Serial.print(logic.yellowAngle);
+      // Serial.print(", ");
+      // Serial.print(logic.yellowDist);
+      // Serial.print(" | ");
+      // Serial.print(logic.blueAngle);
+      // Serial.print(", ");
+      // Serial.print(logic.blueDist);
+      // Serial.print(" | ");
+      Serial.print(logic.ballAngle);
       Serial.print(", ");
-      Serial.print(logic.yellowDist);
-      Serial.print(" | ");
-      Serial.print(logic.blueAngle);
-      Serial.print(", ");
-      Serial.print(logic.blueDist);
+      Serial.print(logic.ballDistance);
       Serial.print(" | ");
       Serial.print(logic.positionX);
       Serial.print(", ");
@@ -36,6 +40,7 @@ void Bot::update() {
       //   logic.manual(direction, speed);
       // } else {
       logic.logic();
+      logic.events.setSpeed(5, 1.0);
       // }
       break;
   }
